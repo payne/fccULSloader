@@ -12,7 +12,7 @@ import tempfile
 import sqlite3
 
 from modules import ised_loader
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 from modules.schemas import table_schemas, column_counts, field_names
 
 
@@ -66,7 +66,7 @@ class TestParseIsedFile(unittest.TestCase):
 class TestUnifiedViewAndSearch(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
-        self.db = FCCDatabase(os.path.join(self.dir, "unified.db"))
+        self.db = CallsignLookupDatabase(os.path.join(self.dir, "unified.db"))
         # Load the CA fixture.
         extract = os.path.join(self.dir, "extract")
         os.makedirs(extract)

@@ -14,7 +14,7 @@ optimization, and maintenance.
 
 Classes:
 -------
-FCCDatabase: Main class that handles all database operations
+CallsignLookupDatabase: Main class that handles all database operations
 
     Methods:
     -------
@@ -46,8 +46,8 @@ FCCDatabase: Main class that handles all database operations
 
 Usage:
 -----
-1. Create an instance of FCCDatabase with the path to the database file:
-   db = FCCDatabase('/path/to/database.db')
+1. Create an instance of CallsignLookupDatabase with the path to the database file:
+   db = CallsignLookupDatabase('/path/to/database.db')
 
 2. Use the methods to interact with the database:
    - Query data: db.get_record_by_call_sign('W1AW')
@@ -72,7 +72,7 @@ from modules.schemas import (
 from modules import fcc_code_defs
 from modules.filesystemtools import ensure_directory, file_exists
 
-class FCCDatabase:
+class CallsignLookupDatabase:
     def __init__(self, db_path):
         self.db_path = db_path
         self.ensure_db_directory()

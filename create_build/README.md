@@ -1,6 +1,6 @@
-# FCC Tool Build Scripts
+# Offline Callsign Lookup Build Scripts
 
-This directory contains scripts for building standalone executables of the FCC Tool application.
+This directory contains scripts for building standalone executables of the Offline Callsign Lookup application.
 
 ## Available Scripts
 
@@ -110,28 +110,28 @@ python create_build/simple_build.py
 
 The executables will be created in the following directories:
 
-- Windows: `dist/fcc-tool-windows/fcc-tool-<version>.exe`
-- Linux: `dist/fcc-tool-linux/fcc-tool-<version>`
-- macOS: `dist/fcc-tool-macos/fcc-tool-<version>`
+- Windows: `dist/callsign-lookup-windows/callsign-lookup-<version>.exe`
+- Linux: `dist/callsign-lookup-linux/callsign-lookup-<version>`
+- macOS: `dist/callsign-lookup-macos/callsign-lookup-<version>`
 
-Where `<version>` is the version number defined in `src/fcc_tool.py`.
+Where `<version>` is the version number defined in `src/callsign_lookup.py`.
 
 ## Running the Built Executables
 
 ### Windows
 Double-click the executable file or run from Command Prompt:
 ```
-dist\fcc-tool-windows\fcc-tool-<version>.exe
+dist\callsign-lookup-windows\callsign-lookup-<version>.exe
 ```
 
 ### Linux
 Run from terminal:
 ```
-./dist/fcc-tool-linux/fcc-tool-<version>
+./dist/callsign-lookup-linux/callsign-lookup-<version>
 ```
 
 ### macOS
 Run from terminal:
 ```
-./dist/fcc-tool-macos/fcc-tool-<version>
+./dist/callsign-lookup-macos/callsign-lookup-<version>
 ``` 

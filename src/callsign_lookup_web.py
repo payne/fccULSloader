@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta
 sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
 from modules.config import Config
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 
 app = Flask(__name__)
 # Configure session to use filesystem
@@ -30,16 +30,21 @@ logger = logging.getLogger(__name__)
 
 # Initialize database
 try:
-    db = FCCDatabase(Config.DB_PATH)
+    db = CallsignLookupDatabase(Config.DB_PATH)
     if not db.database_exists():
-        logger.error("Database does not exist. Please run 'python fcc_tool.py --update' to create and populate the database.")
-    else:
-        # Ensure the unified `licenses` view exists (e.g. for a database built
-        # before Canadian support was added), so country=ca|all queries work.
-        db.create_views()
+        logger.error("Database does not exist. Please run 'python callsign_lookup.py --update' to create and populate the database.")
 except Exception as e:
     logger.error(f"Failed to initialize database: {e}")
     db = None
+
+# Ensure the unified `licenses` view exists (e.g. for a database built before
+# Canadian support was added) so country=ca|all queries work. Kept out of the
+# init try/except above so a view hiccup can never null out `db`.
+if db is not None and db.database_exists():
+    try:
+        db.create_views()
+    except Exception as e:
+        logger.warning(f"Could not (re)create views at startup: {e}")
 
 def handle_database_error(func):
     """Decorator to handle database errors gracefully"""
@@ -48,7 +53,7 @@ def handle_database_error(func):
             if db is None:
                 return render_template_string(ERROR_TEMPLATE, 
                     error="Database is not initialized",
-                    solution="Please run 'python fcc_tool.py --update' to create and populate the database.",
+                    solution="Please run 'python callsign_lookup.py --update' to create and populate the database.",
                     bootstrap_cdn=BOOTSTRAP_CDN,
                     favicon=FAVICON,
                     common_js=COMMON_JS
@@ -82,7 +87,7 @@ ERROR_TEMPLATE = '''
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Error - FCC Licensee Search</title>
+    <title>Error - Offline Callsign Lookup</title>
     {{ bootstrap_cdn|safe }}
     {{ favicon|safe }}
     {{ common_js|safe }}
@@ -90,7 +95,7 @@ ERROR_TEMPLATE = '''
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/"><i class="bi bi-broadcast"></i> FCC Licensee Search</a>
+            <a class="navbar-brand" href="/"><i class="bi bi-broadcast"></i> Offline Callsign Lookup</a>
             <div class="d-flex">
                 <button onclick="toggleTheme()" class="btn btn-outline-light" data-bs-toggle="tooltip" title="Toggle Theme (Ctrl+T)">
                     <i class="bi bi-circle-half"></i>
@@ -697,7 +702,7 @@ SEARCH_FORM = '''
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FCC Licensee Search</title>
+    <title>Offline Callsign Lookup</title>
     {{ bootstrap_cdn|safe }}
     {{ favicon|safe }}
     {{ common_js|safe }}
@@ -1189,7 +1194,7 @@ SEARCH_FORM = '''
         <div class="search-container">
             <div class="search-card">
                 <div class="search-header">
-                    <h1 class="search-title">FCC Licensee Search</h1>
+                    <h1 class="search-title">Offline Callsign Lookup</h1>
                     <p class="search-subtitle">Search for amateur radio operators by callsign, name, or location</p>
                 </div>
                 <form class="search-form" id="searchForm" method="get" action="/search">
@@ -1735,7 +1740,7 @@ RESULTS_TEMPLATE = '''
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand text-primary" href="/">
-                <i class="bi bi-broadcast"></i>FCC Licensee Search
+                <i class="bi bi-broadcast"></i>Offline Callsign Lookup
             </a>
             <button onclick="toggleTheme()" class="theme-toggle btn" data-bs-toggle="tooltip" title="Toggle Theme (Ctrl+T)">
                 <i class="bi bi-circle-half"></i>
@@ -2338,7 +2343,7 @@ PROFILE_TEMPLATE = '''
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand text-primary" href="/">
-                <i class="bi bi-broadcast"></i>FCC Licensee Search
+                <i class="bi bi-broadcast"></i>Offline Callsign Lookup
             </a>
             <button onclick="toggleTheme()" class="theme-toggle btn" data-bs-toggle="tooltip" title="Toggle Theme (Ctrl+T)">
                 <i class="bi bi-circle-half"></i>
@@ -2914,7 +2919,7 @@ def debug_session():
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='FCC Tool web interface')
+    parser = argparse.ArgumentParser(description='Offline Callsign Lookup web interface')
     parser.add_argument(
         '--port', type=int, default=int(os.environ.get('PORT', 5000)),
         help='Port to serve on (default: 5000, or the PORT env var). '

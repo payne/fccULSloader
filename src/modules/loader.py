@@ -14,7 +14,7 @@ import sqlite3
 import time
 import re
 from datetime import datetime
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 from modules.schemas import field_names, table_schemas, index_schemas
 from modules.progress import create_record_progress_bar
 import signal

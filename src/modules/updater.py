@@ -56,7 +56,7 @@ import time
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from modules import downloader, extractor, loader, ised_loader, config, logger
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 from modules.filesystemtools import (
     ensure_directory, ensure_directory_exists, cleanup_temp_files, file_exists
 )
@@ -219,7 +219,7 @@ def update_data(skip_download=False, keep_files=False, force_download=False, qui
         logger.set_log_level(logging.WARNING)
 
     logging.info("Starting the FCC ULS data downloader and loader.")
-    db = FCCDatabase(config.Config.DB_PATH)
+    db = CallsignLookupDatabase(config.Config.DB_PATH)
 
     # Metadata is written only AFTER a successful load, so an interrupted or
     # failed run never records false "up to date" state.
@@ -260,6 +260,16 @@ def update_data(skip_download=False, keep_files=False, force_download=False, qui
             logging.info("Skipping download as no new update is available.")
     else:
         logging.info("Skipping download step as requested.")
+
+    # If we skipped downloading because the data is already current (i.e. not an
+    # explicit --skip-download) and the database already exists, there is nothing
+    # to reload — report success instead of failing on temp files that were
+    # cleaned up after the previous run.
+    if not downloaded and not skip_download and db.database_exists():
+        db.create_views()  # ensure the unified view exists/refreshed
+        logging.info("FCC data is already up to date; nothing to load.")
+        print("FCC data is already up to date.")
+        return True
 
     if not _extract_dir_ready(config.Config.EXTRACT_PATH):
         return False
@@ -313,7 +323,7 @@ def update_ised_data(skip_download=False, keep_files=False, force_download=False
         logger.set_log_level(logging.WARNING)
 
     logging.info("Starting the ISED (Canada) amateur data downloader and loader.")
-    db = FCCDatabase(config.Config.DB_PATH)
+    db = CallsignLookupDatabase(config.Config.DB_PATH)
 
     remote_last_modified_time = None
     downloaded = False
@@ -346,6 +356,13 @@ def update_ised_data(skip_download=False, keep_files=False, force_download=False
             logging.info("Skipping ISED download as no new update is available.")
     else:
         logging.info("Skipping ISED download step as requested.")
+
+    # Nothing to reload if the data is already current and CA_AM is populated.
+    if not downloaded and not skip_download and db.database_exists():
+        db.create_views()
+        logging.info("ISED data is already up to date; nothing to load.")
+        print("ISED (Canada) data is already up to date.")
+        return True
 
     if not _extract_dir_ready(config.Config.ISED_EXTRACT_PATH):
         return False

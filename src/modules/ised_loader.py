@@ -64,7 +64,9 @@ def parse_ised_file(file_path):
     skipped = 0
     total = 0
     with open(file_path, 'r', encoding='utf-8-sig', newline='') as f:
-        reader = csv.reader(f, delimiter=';')
+        # QUOTE_NONE: the ISED file has no quoting, so a stray '"' in an address
+        # must be treated as a literal character, not a CSV quote.
+        reader = csv.reader(f, delimiter=';', quoting=csv.QUOTE_NONE)
 
         # Skip the header row (e.g. "callsign;first_name;surname;...").
         try:
@@ -112,7 +114,7 @@ def load_ised_data(db, extract_path):
     partial load rather than committing a torn table.
 
     Args:
-        db (FCCDatabase): Database wrapper (provides db_path).
+        db (CallsignLookupDatabase): Database wrapper (provides db_path).
         extract_path (str): Directory containing the extracted ISED data file.
 
     Returns:

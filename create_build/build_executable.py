@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for creating standalone executables of FCC Tool for multiple platforms
+Build script for creating standalone executables of Offline Callsign Lookup for multiple platforms
 """
 
 import os
@@ -17,54 +17,54 @@ src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, src_dir)
 
 # Now we can import the version
-from fcc_tool import __version__ as VERSION
+from callsign_lookup import __version__ as VERSION
 
 # Define paths
 DIST_DIR = "dist"
 BUILD_DIR = "build"
 SOURCE_DIR = "src"
 
-# Import version from fcc_tool.py
+# Import version from callsign_lookup.py
 def get_version():
-    """Get version from fcc_tool.py"""
+    """Get version from callsign_lookup.py"""
     try:
         # Try to import from src directory first
-        if os.path.exists(os.path.join(SOURCE_DIR, "fcc_tool.py")):
-            spec = importlib.util.spec_from_file_location("fcc_tool", os.path.join(SOURCE_DIR, "fcc_tool.py"))
-            fcc_tool = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(fcc_tool)
-            return fcc_tool.__version__
+        if os.path.exists(os.path.join(SOURCE_DIR, "callsign_lookup.py")):
+            spec = importlib.util.spec_from_file_location("callsign_lookup", os.path.join(SOURCE_DIR, "callsign_lookup.py"))
+            callsign_lookup = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(callsign_lookup)
+            return callsign_lookup.__version__
         # Fall back to root directory
-        elif os.path.exists("fcc_tool.py"):
-            spec = importlib.util.spec_from_file_location("fcc_tool", "fcc_tool.py")
-            fcc_tool = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(fcc_tool)
-            return fcc_tool.__version__
+        elif os.path.exists("callsign_lookup.py"):
+            spec = importlib.util.spec_from_file_location("callsign_lookup", "callsign_lookup.py")
+            callsign_lookup = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(callsign_lookup)
+            return callsign_lookup.__version__
         else:
-            return "1.5.0"  # Default version if fcc_tool.py not found
+            return "1.5.0"  # Default version if callsign_lookup.py not found
     except (ImportError, AttributeError):
         return "1.5.0"  # Default version if import fails
 
 VERSION = get_version()
-print(f"Building FCC Tool version {VERSION}")
+print(f"Building Offline Callsign Lookup version {VERSION}")
 
 # Platform-specific settings
 PLATFORMS = {
     "windows": {
-        "executable_dir": os.path.join(DIST_DIR, "fcc-tool-windows"),
-        "icon": os.path.join("resources", "fcc-tool.ico"),
+        "executable_dir": os.path.join(DIST_DIR, "callsign-lookup-windows"),
+        "icon": os.path.join("resources", "callsign-lookup.ico"),
         "separator": ";",
         "extension": ".exe"
     },
     "linux": {
-        "executable_dir": os.path.join(DIST_DIR, "fcc-tool-linux"),
-        "icon": os.path.join("resources", "fcc-tool.png"),
+        "executable_dir": os.path.join(DIST_DIR, "callsign-lookup-linux"),
+        "icon": os.path.join("resources", "callsign-lookup.png"),
         "separator": ":",
         "extension": ""
     },
     "macos": {
-        "executable_dir": os.path.join(DIST_DIR, "fcc-tool-macos"),
-        "icon": os.path.join("resources", "fcc-tool.icns"),
+        "executable_dir": os.path.join(DIST_DIR, "callsign-lookup-macos"),
+        "icon": os.path.join("resources", "callsign-lookup.icns"),
         "separator": ":",
         "extension": ".app"
     }
@@ -112,7 +112,7 @@ def build_executable(target_platform=None, quiet=False):
     
     platform_config = PLATFORMS[target_platform]
     if not quiet:
-        print(f"Building FCC Tool version {VERSION} for {target_platform}...")
+        print(f"Building Offline Callsign Lookup version {VERSION} for {target_platform}...")
     
     # Create platform-specific output directory
     os.makedirs(platform_config["executable_dir"], exist_ok=True)
@@ -140,28 +140,28 @@ def build_executable(target_platform=None, quiet=False):
         elif not quiet:
             print(f"Warning: {src_file} not found, it will not be included in the executable")
     
-    # Determine the path to fcc_tool.py
-    if os.path.exists(os.path.join(SOURCE_DIR, "fcc_tool.py")):
-        fcc_tool_path = os.path.join(SOURCE_DIR, "fcc_tool.py")
+    # Determine the path to callsign_lookup.py
+    if os.path.exists(os.path.join(SOURCE_DIR, "callsign_lookup.py")):
+        callsign_lookup_path = os.path.join(SOURCE_DIR, "callsign_lookup.py")
         # Add modules directory if using source directory
         modules_path = os.path.join(SOURCE_DIR, "modules")
-    elif os.path.exists("fcc_tool.py"):
-        fcc_tool_path = "fcc_tool.py"
+    elif os.path.exists("callsign_lookup.py"):
+        callsign_lookup_path = "callsign_lookup.py"
         # Add modules directory from root
         modules_path = "modules"
     else:
         if not quiet:
-            print("Error: fcc_tool.py not found in src directory or root directory")
+            print("Error: callsign_lookup.py not found in src directory or root directory")
         return False
     
     if not quiet:
-        print(f"Using source file: {fcc_tool_path}")
+        print(f"Using source file: {callsign_lookup_path}")
         print(f"Using modules path: {modules_path}")
     
     # Build command - using --onefile instead of --onedir for a single executable
     cmd = [
         "pyinstaller",
-        f"--name=fcc-tool-{VERSION}",  # Include version in name
+        f"--name=callsign-lookup-{VERSION}",  # Include version in name
         "--onefile",  # Changed from --onedir to --onefile
         "--clean",
         "--noconfirm",
@@ -173,7 +173,7 @@ def build_executable(target_platform=None, quiet=False):
         "--hidden-import=modules.filesystemtools",
         "--hidden-import=modules.fcc_code_defs",
         f"--add-data={modules_path}{separator}modules",
-    ] + icon_option + data_files + [fcc_tool_path]
+    ] + icon_option + data_files + [callsign_lookup_path]
     
     try:
         if quiet:
@@ -197,7 +197,7 @@ def build_executable(target_platform=None, quiet=False):
                 os.remove(spec_file)
         
         if not quiet:
-            print(f"Executable created: {platform_config['executable_dir']}/fcc-tool-{VERSION}{platform_config['extension']}")
+            print(f"Executable created: {platform_config['executable_dir']}/callsign-lookup-{VERSION}{platform_config['extension']}")
         
         return True
     except subprocess.CalledProcessError as e:
@@ -245,7 +245,7 @@ def create_platform_scripts():
     # Linux shell script
     with open("install.sh", "w") as f:
         f.write("""#!/bin/bash
-echo "FCC Tool Installer"
+echo "Offline Callsign Lookup Installer"
 echo "================="
 echo
 
@@ -272,9 +272,9 @@ fi
 
 echo
 echo "Installation completed successfully!"
-echo "The executable is located in the dist/fcc-tool-linux directory."
+echo "The executable is located in the dist/callsign-lookup-linux directory."
 echo
-echo "You can run the application by executing dist/fcc-tool-linux/fcc-tool"
+echo "You can run the application by executing dist/callsign-lookup-linux/callsign-lookup"
 echo
 """)
     os.chmod("install.sh", 0o755)
@@ -282,7 +282,7 @@ echo
     # macOS shell script
     with open("install_macos.sh", "w") as f:
         f.write("""#!/bin/bash
-echo "FCC Tool Installer for macOS"
+echo "Offline Callsign Lookup Installer for macOS"
 echo "==========================="
 echo
 
@@ -309,16 +309,16 @@ fi
 
 echo
 echo "Installation completed successfully!"
-echo "The executable is located in the dist/fcc-tool-macos directory."
+echo "The executable is located in the dist/callsign-lookup-macos directory."
 echo
-echo "You can run the application by executing dist/fcc-tool-macos/fcc-tool"
+echo "You can run the application by executing dist/callsign-lookup-macos/callsign-lookup"
 echo
 """)
     os.chmod("install_macos.sh", 0o755)
 
 def main():
     """Main function to parse arguments and build the executable"""
-    parser = argparse.ArgumentParser(description="Build FCC Tool executable")
+    parser = argparse.ArgumentParser(description="Build Offline Callsign Lookup executable")
     parser.add_argument("--platform", choices=["windows", "linux", "macos"], help="Target platform")
     parser.add_argument("--clean", action="store_true", help="Clean build directories before building")
     parser.add_argument("--install-deps", action="store_true", help="Install required dependencies before building")

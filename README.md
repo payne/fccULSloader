@@ -1,4 +1,4 @@
-# FCC Tool
+# Offline Callsign Lookup
 
 A comprehensive utility for managing and querying FCC amateur radio license database files, creating a local SQLite copy of the entire FCC ULS database for offline use. Includes both a command-line interface and a modern web interface.
 
@@ -25,18 +25,18 @@ A comprehensive utility for managing and querying FCC amateur radio license data
 
 ## Overview
 
-FCC Tool is a command-line and web application that creates and maintains a complete local SQLite copy of the FCC Amateur Radio License database. This allows you to develop applications that can look up any callsign, entity, or license name without requiring internet connectivity. The tool provides functionality to download and update the database from the [FCC's Universal Licensing System (ULS)](https://www.fcc.gov/wireless/universal-licensing-system), look up amateur radio call signs, search for licensees by name or state, and maintain the database for optimal performance.
+Offline Callsign Lookup is a command-line and web application that creates and maintains a complete local SQLite copy of the FCC Amateur Radio License database. This allows you to develop applications that can look up any callsign, entity, or license name without requiring internet connectivity. The tool provides functionality to download and update the database from the [FCC's Universal Licensing System (ULS)](https://www.fcc.gov/wireless/universal-licensing-system), look up amateur radio call signs, search for licensees by name or state, and maintain the database for optimal performance.
 
 The offline nature of this tool makes it particularly valuable for amateur radio operators in the field, emergency communications scenarios, or any situation where internet access may be limited or unavailable.
 
-FCC Tool can optionally also mirror the **Canadian** amateur database from Innovation, Science and Economic Development Canada (ISED) into the same local database, giving you a unified US + Canada offline lookup. This is entirely opt-in via `--country` (see [Canadian (ISED) Data](#canadian-ised-data-)); by default the tool works with US/FCC data only, exactly as before.
+Offline Callsign Lookup can optionally also mirror the **Canadian** amateur database from Innovation, Science and Economic Development Canada (ISED) into the same local database, giving you a unified US + Canada offline lookup. This is entirely opt-in via `--country` (see [Canadian (ISED) Data](#canadian-ised-data-)); by default the tool works with US/FCC data only, exactly as before.
 
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
 ## How to Use (Video) 📺
 
-A short walkthrough of installing and using FCC Tool:
+A short walkthrough of installing and using Offline Callsign Lookup:
 
 <!-- GitHub renders the <video> tag below as an inline player. If it doesn't
      play in your viewer, use the direct link underneath. -->
@@ -79,7 +79,7 @@ SOFTWARE.
 ### Web Interface
 **[[Features](#features) > Web Interface]**
 
-FCC Tool includes a modern, responsive web interface (`fcc_tool_web.py`) that provides an elegant way to search and view FCC amateur radio license data:
+Offline Callsign Lookup includes a modern, responsive web interface (`callsign_lookup_web.py`) that provides an elegant way to search and view FCC amateur radio license data:
 
 #### Search Interface
 - **Clean, Modern Design**: A beautiful, intuitive search interface
@@ -132,7 +132,7 @@ The web interface is built with:
 ### Database Management
 **[[Features](#features) > Database Management]**
 
-FCC Tool can automatically download and update the FCC amateur radio license database from the [FCC's ULS database downloads page](https://www.fcc.gov/uls/transactions/daily-weekly). The tool checks for updates by comparing the last modified date of the remote file with your local copy, ensuring you only download new data when it's available.
+Offline Callsign Lookup can automatically download and update the FCC amateur radio license database from the [FCC's ULS database downloads page](https://www.fcc.gov/uls/transactions/daily-weekly). The tool checks for updates by comparing the last modified date of the remote file with your local copy, ensuring you only download new data when it's available.
 
 Key features:
 
@@ -155,7 +155,7 @@ The tool also provides several options for maintaining and optimizing the databa
 
 #### Call Sign Lookup
 
-The primary function of FCC Tool is to look up FCC license information by call sign. This retrieves all available information for a specific amateur radio call sign from the database.
+The primary function of Offline Callsign Lookup is to look up FCC license information by call sign. This retrieves all available information for a specific amateur radio call sign from the database.
 
 #### Name Search
 
@@ -177,7 +177,7 @@ You can combine name and state/province filters to perform more targeted searche
 
 ## Installation
 
-FCC Tool can be run directly from Python source or as a standalone executable. For detailed instructions on building and running the application, see the [Build Documentation](create_build/README.md).
+Offline Callsign Lookup can be run directly from Python source or as a standalone executable. For detailed instructions on building and running the application, see the [Build Documentation](create_build/README.md).
 
 ### Quick Start
 
@@ -188,10 +188,10 @@ FCC Tool can be run directly from Python source or as a standalone executable. F
 pip install -r requirements.txt
 
 # Run the CLI application
-python fcc_tool.py --help
+python callsign_lookup.py --help
 
 # Run the web interface
-python fcc_tool_web.py
+python callsign_lookup_web.py
 ```
 
 The web interface requires additional Python packages:
@@ -215,7 +215,7 @@ Download the latest release from the [Releases page](https://github.com/tirandag
 To start the web interface:
 
 ```bash
-python src/fcc_tool_web.py
+python src/callsign_lookup_web.py
 ```
 
 This will start a Flask web server on port 5000. You can then access the web interface by opening a web browser and navigating to:
@@ -227,9 +227,9 @@ http://localhost:5000
 **Choosing a different port:** If port 5000 is already in use, pass `--port` (or set the `PORT` environment variable). This is common on macOS, where the **AirPlay Receiver** listens on port 5000 by default:
 
 ```bash
-python src/fcc_tool_web.py --port 8000
+python src/callsign_lookup_web.py --port 8000
 # or
-PORT=8000 python src/fcc_tool_web.py
+PORT=8000 python src/callsign_lookup_web.py
 ```
 
 You can also override the bind address with `--host` (or the `HOST` env var), which defaults to `0.0.0.0`.
@@ -260,7 +260,7 @@ The web interface provides:
 ### Command Line Options
 **[[Usage](#usage) > Command Line Options]**
 
-FCC Tool provides a comprehensive set of command-line options for database management and querying:
+Offline Callsign Lookup provides a comprehensive set of command-line options for database management and querying:
 
 #### Database Management Options
 
@@ -296,32 +296,32 @@ FCC Tool provides a comprehensive set of command-line options for database manag
 
 Update the database with the latest data from the FCC:
 ```
-python fcc_tool.py --update
+python callsign_lookup.py --update
 ```
 
 Force a new download regardless of whether the data is up to date:
 ```
-python fcc_tool.py --force-download
+python callsign_lookup.py --force-download
 ```
 
 Check if an update is available without downloading:
 ```
-python fcc_tool.py --check-update
+python callsign_lookup.py --check-update
 ```
 
 Update the database and only keep active license records:
 ```
-python fcc_tool.py --update --active-only
+python callsign_lookup.py --update --active-only
 ```
 
 Force a complete database rebuild with only active license records:
 ```
-python fcc_tool.py --force-download --active-only
+python callsign_lookup.py --force-download --active-only
 ```
 
 Filter an existing database to only keep active license records:
 ```
-python fcc_tool.py --active-only
+python callsign_lookup.py --active-only
 ```
 
 When using the `--active-only` option, the tool will:
@@ -335,72 +335,72 @@ When using `--active-only` with `--force-download`, the database will be complet
 
 Optimize the database to reduce its size:
 ```
-python fcc_tool.py --optimize
+python callsign_lookup.py --optimize
 ```
 
 Rebuild indexes to improve search performance:
 ```
-python fcc_tool.py --rebuild-indexes
+python callsign_lookup.py --rebuild-indexes
 ```
 
 #### Queries
 
 Look up a specific call sign:
 ```
-python fcc_tool.py --callsign W1AW
+python callsign_lookup.py --callsign W1AW
 ```
 
 Search for records by name:
 ```
-python fcc_tool.py --name "Smith"
+python callsign_lookup.py --name "Smith"
 ```
 
 Search for records in a specific state:
 ```
-python fcc_tool.py --state CA
+python callsign_lookup.py --state CA
 ```
 
 Combine name and state search:
 ```
-python fcc_tool.py --name "Smith" --state TX
+python callsign_lookup.py --name "Smith" --state TX
 ```
 
 Display detailed information for search results:
 ```
-python fcc_tool.py --name "Smith" --verbose
+python callsign_lookup.py --name "Smith" --verbose
 ```
 
 Search by name regardless of stored order (matches "Burk, Brian"):
 ```
-python fcc_tool.py --name "Brian Burk"
+python callsign_lookup.py --name "Brian Burk"
 ```
 
 #### Canadian (ISED) Data 🇨🇦
 
-FCC Tool can optionally mirror the Canadian amateur database from Innovation,
+Offline Callsign Lookup can optionally mirror the Canadian amateur database from Innovation,
 Science and Economic Development Canada (ISED) into the **same** SQLite file,
 giving you a unified US + Canada lookup. This is entirely opt-in via
 `--country`; without it, the tool behaves exactly as before (US only).
 
 Download and load **both** US and Canadian data:
 ```
-python fcc_tool.py --update --country all
+python callsign_lookup.py --update --country all
 ```
 
 Load **only** the Canadian data:
 ```
-python fcc_tool.py --update --country ca
+python callsign_lookup.py --update --country ca
 ```
 
 Look up a Canadian call sign:
 ```
-python fcc_tool.py --callsign VE3XYZ --country ca
+python callsign_lookup.py --callsign VE3XYZ --country ca
 ```
 
 Search Canadian records by name and province, and query both countries at once:
 ```
-python fcc_tool.py --name "Tremblay" --state QC --country ca
-python fcc_tool.py --callsign VA2AA --country all
+python callsign_lookup.py --name "Tremblay" --state QC --country ca
+python callsign_lookup.py --callsign VA2AA --country all
 ```
 
 The Canadian source is the ISED "Amateur Call Sign List"
@@ -417,10 +417,10 @@ Canadian data is licensed under the
 The project is organized as follows:
 
 ```
-fcc-tool/
+callsign-lookup/
 ├── src/                  # Source code directory
-│   ├── fcc_tool.py       # Main CLI application script
-│   ├── fcc_tool_web.py   # Web interface application
+│   ├── callsign_lookup.py       # Main CLI application script
+│   ├── callsign_lookup_web.py   # Web interface application
 │   ├── flask_session/    # Flask session storage
 │   │   ├── css/         # Stylesheets
 │   │   ├── js/          # JavaScript files
@@ -434,9 +434,9 @@ fcc-tool/
 │   ├── install.sh        # Linux installation script
 │   └── install_macos.sh  # macOS installation script
 ├── dist/                 # Distribution directory (created during build)
-│   ├── fcc-tool-windows/ # Windows executable
-│   ├── fcc-tool-linux/   # Linux executable
-│   └── fcc-tool-macos/   # macOS executable
+│   ├── callsign-lookup-windows/ # Windows executable
+│   ├── callsign-lookup-linux/   # Linux executable
+│   └── callsign-lookup-macos/   # macOS executable
 ├── resources/            # Application resources
 ├── README.md             # This documentation
 ├── FCC_DATABASE_DOC.md   # Detailed database documentation
@@ -448,15 +448,15 @@ fcc-tool/
 When running the application, additional directories are created:
 
 ```
-fcc-tool/
+callsign-lookup/
 ├── data/                 # Data directory (created automatically)
-│   ├── fcc_data.db       # SQLite database (holds both US and, if loaded, CA data)
+│   ├── callsign_data.db       # SQLite database (holds both US and, if loaded, CA data)
 │   ├── fcc_metadata.json # Metadata about the last FCC download
 │   ├── ised_metadata.json# Metadata about the last ISED (Canada) download
 │   ├── extracted/        # Extracted FCC .dat files
 │   └── extracted_ca/     # Extracted ISED (Canada) data file
 └── logs/                 # Log directory (created automatically)
-    └── fcc_tool.log      # Application log file
+    └── callsign_lookup.log      # Application log file
 ```
 
 Key modules (`src/modules/`) include `config.py` (paths/URLs/knobs),
@@ -484,7 +484,7 @@ The database path and other configuration settings are defined in the `modules/c
 
 ## Database Documentation
 
-The FCC database contains multiple tables with information about amateur radio licenses. The primary tables used by FCC Tool are:
+The FCC database contains multiple tables with information about amateur radio licenses. The primary tables used by Offline Callsign Lookup are:
 
 - `HD`: License header information (call sign, license status, etc.)
 - `EN`: Entity information (name, address, etc.)
@@ -512,14 +512,14 @@ The FCC data is sourced from the [FCC's ULS database downloads page](https://www
 
 ### Common Issues
 
-- **Database not found**: Run `python fcc_tool.py --update` to download and create the database.
-- **Slow searches**: Run `python fcc_tool.py --rebuild-indexes` to optimize search performance.
-- **Large database size**: Run `python fcc_tool.py --optimize` to reduce the database size.
-- **Download errors**: Check your internet connection and try again with `python fcc_tool.py --force-download`.
+- **Database not found**: Run `python callsign_lookup.py --update` to download and create the database.
+- **Slow searches**: Run `python callsign_lookup.py --rebuild-indexes` to optimize search performance.
+- **Large database size**: Run `python callsign_lookup.py --optimize` to reduce the database size.
+- **Download errors**: Check your internet connection and try again with `python callsign_lookup.py --force-download`.
 
 ### Logs
 
-The application logs are stored in the `logs/fcc_tool.log` file. If you encounter issues, check this file for detailed error messages and debugging information.
+The application logs are stored in the `logs/callsign_lookup.log` file. If you encounter issues, check this file for detailed error messages and debugging information.
 
 [↑ Back to Table of Contents](#table-of-contents-)
 

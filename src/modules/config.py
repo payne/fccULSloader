@@ -54,7 +54,7 @@ class Config:
     DATA_PATH = os.path.join(BASE_DIR, "data")
     ZIP_FILE_PATH = os.path.join(DATA_PATH, "l_amat.zip")
     EXTRACT_PATH = os.path.join(DATA_PATH, "extracted")
-    DB_PATH = os.path.join(DATA_PATH, "fcc_data.db")
+    DB_PATH = os.path.join(DATA_PATH, "callsign_data.db")
     ZIP_FILE_URL = 'https://data.fcc.gov/download/pub/uls/complete/l_amat.zip'  # URL for the file
     METADATA_FILE = os.path.join(DATA_PATH, "fcc_metadata.json")
     USE_MULTITHREADING = False
@@ -63,7 +63,7 @@ class Config:
     # Prevents a hung/slow server (e.g. a foreign download host) from blocking the process forever.
     HTTP_TIMEOUT = (10, 60)
 
-    # For just the tables needed for the FCC Tool, uncomment the following line and comment the one above it
+    # For just the tables needed for the Offline Callsign Lookup, uncomment the following line and comment the one above it
     TABLES_TO_PROCESS = ["AM","EN","HD"]
     # For a full download into the database of all FCC files, uncomment the following line and comment the one above it
     # TABLES_TO_PROCESS = ["AM", "CO", "EN", "HD", "HS", "LA", "SC", "SF"]

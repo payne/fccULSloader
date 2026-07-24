@@ -1,5 +1,5 @@
 """
-FCC Tool - FCC Amateur Radio License Database Management Tool
+Offline Callsign Lookup - FCC Amateur Radio License Database Management Tool
 ============================================================
 
 Author: Tiran Dagan (Backstop Radio)
@@ -55,7 +55,7 @@ Usage:
 -----
 The tool uses modules from the 'modules' directory:
 - config: Configuration settings
-- database: Database operations (FCCDatabase class)
+- database: Database operations (CallsignLookupDatabase class)
 - updater: Database update functionality
 - logger: Logging configuration
 - filesystemtools: File system operations
@@ -87,17 +87,17 @@ Queries:
 
 Examples:
 --------
-python fcc_tool.py --update
-python fcc_tool.py --update --country all        # download + load both US and Canada
-python fcc_tool.py --update --country ca         # Canada (ISED) only
-python fcc_tool.py --callsign W1AW
-python fcc_tool.py --callsign VE3XYZ --country ca
-python fcc_tool.py --name "Smith"
-python fcc_tool.py --name "Brian Burk"           # matches "Burk, Brian" too
-python fcc_tool.py --state CA
-python fcc_tool.py --name "Tremblay" --state QC --country ca
-python fcc_tool.py --compact
-python fcc_tool.py --optimize
+python callsign_lookup.py --update
+python callsign_lookup.py --update --country all        # download + load both US and Canada
+python callsign_lookup.py --update --country ca         # Canada (ISED) only
+python callsign_lookup.py --callsign W1AW
+python callsign_lookup.py --callsign VE3XYZ --country ca
+python callsign_lookup.py --name "Smith"
+python callsign_lookup.py --name "Brian Burk"           # matches "Burk, Brian" too
+python callsign_lookup.py --state CA
+python callsign_lookup.py --name "Tremblay" --state QC --country ca
+python callsign_lookup.py --compact
+python callsign_lookup.py --optimize
 """
 
 import argparse
@@ -107,12 +107,12 @@ import sys
 import os
 from modules import config, fcc_code_defs
 from modules import updater, logger
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 from modules.filesystemtools import ensure_directory
 
 # Version information
 __version__ = "2.1.0"
-APP_NAME = "FCC Tool"
+APP_NAME = "Offline Callsign Lookup"
 
 # Utility functions
 
@@ -188,7 +188,7 @@ def gather_query_records(db, args, country):
     province code.
 
     Args:
-        db (FCCDatabase): The database instance.
+        db (CallsignLookupDatabase): The database instance.
         args: Parsed argparse namespace (uses callsign/name/state).
         country (str): 'us', 'ca', or 'all'.
 
@@ -242,7 +242,7 @@ def main():
     
     # Create argument parser
     parser = argparse.ArgumentParser(
-        description="FCC Tool - FCC Amateur Radio License Database Management Tool",
+        description="Offline Callsign Lookup - FCC Amateur Radio License Database Management Tool",
         epilog="For more information, see the README.md file."
     )
     
@@ -300,7 +300,7 @@ def main():
     db_path = config.Config.DB_PATH
     
     # Create database object
-    db = FCCDatabase(db_path)
+    db = CallsignLookupDatabase(db_path)
     
     # Ensure data directory exists
     ensure_directory('data')
@@ -448,7 +448,7 @@ def main():
                 if args.verbose:
                     db.display_verbose_record(record)
                 else:
-                    FCCDatabase.display_record(record)
+                    CallsignLookupDatabase.display_record(record)
         else:
             print("No records found for the given criteria.")
         return

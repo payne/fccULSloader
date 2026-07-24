@@ -1,5 +1,5 @@
 @echo off
-echo FCC Tool Installer for Windows
+echo Offline Callsign Lookup Installer for Windows
 
 REM Check for Python installation
 python --version > nul 2>&1
@@ -37,9 +37,9 @@ if exist build rmdir /s /q build > nul 2>&1
 if exist *.spec del /f /q *.spec > nul 2>&1
 if exist __pycache__ rmdir /s /q __pycache__ > nul 2>&1
 for /d /r . %%d in (__pycache__) do @if exist "%%d" rmdir /s /q "%%d" > nul 2>&1
-if exist "fcc-tool-*.pkg" del /f /q "fcc-tool-*.pkg" > nul 2>&1
-if exist "fcc-tool-*.exe.manifest" del /f /q "fcc-tool-*.exe.manifest" > nul 2>&1
-if exist "warn-fcc-tool-*.txt" del /f /q "warn-fcc-tool-*.txt" > nul 2>&1
+if exist "callsign-lookup-*.pkg" del /f /q "callsign-lookup-*.pkg" > nul 2>&1
+if exist "callsign-lookup-*.exe.manifest" del /f /q "callsign-lookup-*.exe.manifest" > nul 2>&1
+if exist "warn-callsign-lookup-*.txt" del /f /q "warn-callsign-lookup-*.txt" > nul 2>&1
 
 REM Double-check that build folder is gone (sometimes it's recreated)
 timeout /t 1 /nobreak > nul
@@ -49,4 +49,4 @@ REM Get version from build_executable.py directly
 for /f "tokens=*" %%i in ('python create_build\build_executable.py --get-version') do set VERSION=%%i
 
 echo Build completed successfully.
-echo Executable: dist\fcc-tool-windows\fcc-tool-%VERSION%.exe
+echo Executable: dist\callsign-lookup-windows\callsign-lookup-%VERSION%.exe

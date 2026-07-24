@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the FCC Tool project will be documented in this file.
+All notable changes to the Offline Callsign Lookup project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,13 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-07-24
 
 ### Added
-- **Optional Canadian (ISED) amateur data support.** FCC Tool can now mirror the
+- **Optional Canadian (ISED) amateur data support.** Offline Callsign Lookup can now mirror the
   Canadian "Amateur Call Sign List" from Innovation, Science and Economic
   Development Canada (ISED) into the **same** SQLite database as the FCC data,
   for unified US + Canada lookups.
   - New `--country {us,ca,all}` option (CLI) and Country selector (web). Default
     is `us`, so existing behavior is unchanged unless you opt in.
-  - `python fcc_tool.py --update --country all` downloads and loads both sources;
+  - `python callsign_lookup.py --update --country all` downloads and loads both sources;
     `--country ca` loads only Canada.
   - Canadian records carry callsign, name, address, province, and qualification
     level (Basic / Basic with Honours / Advanced). ISED publishes only assigned
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Web interface now accepts `--port` and `--host` command-line options (with `PORT`/`HOST` environment variable fallbacks) instead of hardcoding port 5000
   - Lets the server run on an alternate port when 5000 is unavailable — common on macOS, where the AirPlay Receiver binds port 5000 by default
-  - Example: `python src/fcc_tool_web.py --port 8000` or `PORT=8000 python src/fcc_tool_web.py`
+  - Example: `python src/callsign_lookup_web.py --port 8000` or `PORT=8000 python src/callsign_lookup_web.py`
 
 ## [1.7.0] - 2025-03-08
 
@@ -92,12 +92,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Various minor bug fixes and performance improvements
 - Fixed argument processing issue when using `--active-only` with `--force-download`
 - Fixed issue where using `--force-download` without `--update` didn't trigger any action
-- Fixed Linux executable naming to follow the format "fcc-tool-linux-[version]"
+- Fixed Linux executable naming to follow the format "callsign-lookup-linux-[version]"
 
 ## [1.6.0] - 2025-02-15
 
 ### Added
-- Initial public release of FCC Tool
+- Initial public release of Offline Callsign Lookup
 - Comprehensive database management features
 - Query capabilities for amateur radio call signs
 - Search functionality by name and state

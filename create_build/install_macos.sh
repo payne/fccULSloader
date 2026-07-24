@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "FCC Tool Installer for macOS"
+echo "Offline Callsign Lookup Installer for macOS"
 echo "==========================="
 echo
 
@@ -26,7 +26,7 @@ fi
 
 echo
 echo "Installation completed successfully!"
-echo "The executable is located in the dist/fcc-tool-macos directory."
+echo "The executable is located in the dist/callsign-lookup-macos directory."
 echo
-echo "You can run the application by executing dist/fcc-tool-macos/fcc-tool"
+echo "You can run the application by executing dist/callsign-lookup-macos/callsign-lookup"
 echo 

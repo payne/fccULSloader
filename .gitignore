@@ -39,6 +39,13 @@ fcc_metadata.json
 # Extraction directory
 extraction/
 
+# Flask server-side session store (runtime data, not source)
+flask_session/
+src/flask_session/
+
+# Partial/in-progress downloads
+*.part
+
 # Distribution / packaging
 dist/
 build/

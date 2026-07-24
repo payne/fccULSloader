@@ -92,11 +92,14 @@ def download_file(url, dest_path, retries=3, desc="Downloading data", validate_z
 
             progress_bar.close()
 
-            # Completeness check: if the server told us the size, enforce it.
+            # Completeness hint: if the server told us the size, note a mismatch.
+            # This is only a warning — a server that gzip-encodes the response
+            # legitimately yields a different byte count — the zip integrity
+            # check below is the authoritative test for truncation/corruption.
             if total_size_in_bytes and written != total_size_in_bytes:
-                raise IOError(
-                    f"Incomplete download: got {written} bytes, expected "
-                    f"{total_size_in_bytes}."
+                logging.warning(
+                    f"Downloaded {written} bytes but Content-Length was "
+                    f"{total_size_in_bytes}; verifying archive integrity."
                 )
 
             # Integrity check before trusting the file.

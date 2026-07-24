@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="fcc-tool",
+    name="callsign-lookup",
     version="1.0.0",
     description="A tool for managing and querying FCC amateur radio license database files",
     author="Tiran Dagan",
@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "fcc-tool=fcc_tool:main",
+            "callsign-lookup=callsign_lookup:main",
         ],
     },
     classifiers=[
