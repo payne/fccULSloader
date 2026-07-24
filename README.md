@@ -4,15 +4,12 @@ A comprehensive utility for managing and querying FCC amateur radio license data
 
 ## 📺 Watch: How to Use
 
-[![Watch the Offline Callsign Lookup walkthrough](docs/how-to-use-poster.jpg)](https://github.com/tirandagan/fccULSloader/blob/main/docs/how-to-use.mp4)
+[![Watch the Offline Callsign Lookup walkthrough on YouTube](https://img.youtube.com/vi/a7eHzYmq_RQ/maxresdefault.jpg)](https://youtu.be/a7eHzYmq_RQ)
 
-▶️ **[Click the image to watch the walkthrough](https://github.com/tirandagan/fccULSloader/blob/main/docs/how-to-use.mp4)** — installing and using Offline Callsign Lookup (US + Canada lookups, CLI & web).
+▶️ **[Watch the walkthrough on YouTube](https://youtu.be/a7eHzYmq_RQ)** — installing and using Offline Callsign Lookup (US + Canada lookups, CLI & web).
 
-<!-- Note: GitHub strips <video> tags that reference raw repo files, so a clickable
-     poster image is used above (it opens GitHub's built-in video player page).
-     To embed a TRUE inline player instead, edit this README on GitHub (pencil icon),
-     drag-and-drop docs/how-to-use.mp4 into the editor, and GitHub will insert a
-     playable https://github.com/user-attachments/assets/<id> URL — paste that here. -->
+<!-- GitHub doesn't allow inline YouTube/iframe embeds in READMEs, so the image
+     above is a clickable thumbnail that opens the video on YouTube. -->
 
 ## Table of Contents 📑
 
