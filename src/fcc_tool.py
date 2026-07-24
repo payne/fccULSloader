@@ -74,19 +74,28 @@ Database Management:
   --rebuild-indexes       : Rebuild database indexes to improve search performance
   --active-only           : Only keep active license records (license_status="A") in the database
 
+  --country {us,ca,all}   : Which country's data to download/load/query — us (FCC,
+                            default), ca (Canada/ISED), or all (both). Canadian data
+                            loads into the SAME database alongside the FCC data.
+
 Queries:
   --callsign CALLSIGN     : Look up a specific amateur radio call sign
-  --name NAME             : Search for records by name (case-insensitive wildcard search)
-  --state STATE           : Filter records by two-letter state code (e.g., CA, NY, TX)
+  --name NAME             : Search for records by name (case-insensitive, order-agnostic:
+                            "Brian Burk" matches a record stored as "Burk, Brian")
+  --state STATE           : Filter by two-letter state (US) or province (CA) code
   --verbose               : Display all fields for each record
 
 Examples:
 --------
 python fcc_tool.py --update
+python fcc_tool.py --update --country all        # download + load both US and Canada
+python fcc_tool.py --update --country ca         # Canada (ISED) only
 python fcc_tool.py --callsign W1AW
+python fcc_tool.py --callsign VE3XYZ --country ca
 python fcc_tool.py --name "Smith"
+python fcc_tool.py --name "Brian Burk"           # matches "Burk, Brian" too
 python fcc_tool.py --state CA
-python fcc_tool.py --name "Smith" --state TX
+python fcc_tool.py --name "Tremblay" --state QC --country ca
 python fcc_tool.py --compact
 python fcc_tool.py --optimize
 """
@@ -102,7 +111,7 @@ from modules.database import FCCDatabase
 from modules.filesystemtools import ensure_directory
 
 # Version information
-__version__ = "1.7.0"
+__version__ = "2.1.0"
 APP_NAME = "FCC Tool"
 
 # Utility functions
@@ -169,6 +178,55 @@ def signal_handler(sig, frame):
     else:
         print("Resuming process.")
 
+def gather_query_records(db, args, country):
+    """
+    Collect query results across the requested country scope.
+
+    Runs the US (FCC) and/or CA (ISED) queries as dictated by `country`
+    (us | ca | all), tags each record with its country, and returns the
+    combined list. For Canadian queries the `--state` value is treated as a
+    province code.
+
+    Args:
+        db (FCCDatabase): The database instance.
+        args: Parsed argparse namespace (uses callsign/name/state).
+        country (str): 'us', 'ca', or 'all'.
+
+    Returns:
+        list[dict]: Combined, country-tagged result records.
+    """
+    want_us = country in ('us', 'all')
+    want_ca = country in ('ca', 'all')
+    records = []
+
+    if args.callsign:
+        call_sign = args.callsign.upper()
+        if want_us:
+            rec = db.get_record_by_call_sign(call_sign)
+            if rec:
+                rec['call_sign'] = call_sign
+                rec['country'] = 'US'
+                records.append(rec)
+        if want_ca:
+            records.extend(db.get_ca_records_by_call_sign(call_sign))
+    else:
+        if want_us:
+            if args.name and args.state:
+                us = db.search_records_by_name_and_state(args.name, args.state)
+            elif args.name:
+                us = db.search_records_by_name(args.name)
+            elif args.state:
+                us = db.search_records_by_state(args.state)
+            else:
+                us = []
+            for r in us:
+                r['country'] = 'US'
+            records.extend(us)
+        if want_ca and (args.name or args.state):
+            records.extend(db.search_ca_records(name=args.name, province=args.state))
+
+    return records
+
 def main():
     """
     Main function that parses command-line arguments and executes the appropriate action.
@@ -213,9 +271,14 @@ def main():
                          help='Rebuild database indexes to improve search performance')
     db_group.add_argument('--active-only', action='store_true',
                          help='Only keep active license records (license_status="A") in the database')
-    db_group.add_argument('--non-interactive', action='store_true', 
+    db_group.add_argument('--non-interactive', action='store_true',
                             help='Automatically accepts all interactive prompts.')
-    
+    db_group.add_argument('--country', choices=['us', 'ca', 'all'],
+                          default=config.Config.DEFAULT_COUNTRY,
+                          help="Which country's data to download/load/query: "
+                               "us (FCC, default), ca (Canada/ISED), or all (both). "
+                               "Canadian data loads into the same database alongside the FCC data.")
+
     # Query options
     query_group.add_argument('--callsign', metavar='CALLSIGN', 
                             help='Look up a specific amateur radio call sign')
@@ -285,18 +348,22 @@ def main():
                 return
         
         try:
-            updater.update_data(
+            ok = updater.update_country(
+                country=args.country,
                 skip_download=args.skip_download,
                 keep_files=args.keep_files,
                 force_download=args.force_download,
                 quiet=args.quiet,
                 active_only=args.active_only
             )
+            if not ok:
+                sys.exit(1)
         except Exception as e:
             logging.error(f"Error during update process: {e}")
             print(f"Error: {e}")
+            sys.exit(1)
         return
-    
+
     # Handle force-download without update (treat it as an update with force-download)
     if args.force_download and not args.update:
         print("Forcing download of the latest FCC database...")
@@ -314,16 +381,20 @@ def main():
                 return
         
         try:
-            updater.update_data(
+            ok = updater.update_country(
+                country=args.country,
                 skip_download=False,
                 keep_files=args.keep_files,
                 force_download=True,
                 quiet=args.quiet,
                 active_only=args.active_only
             )
+            if not ok:
+                sys.exit(1)
         except Exception as e:
             logging.error(f"Error during update process: {e}")
             print(f"Error: {e}")
+            sys.exit(1)
         return
     
     # Handle active-only without update
@@ -367,66 +438,21 @@ def main():
         print("Error: Database does not exist. Please run with --update first.")
         return
     
-    # Handle query options
-    
-    # Search by name and state
-    if args.name and args.state:
-        records = db.search_records_by_name_and_state(args.name, args.state)
+    # Handle query options (country-aware: us | ca | all)
+    if args.callsign or args.name or args.state:
+        records = gather_query_records(db, args, args.country)
         if records:
-            print(f"Found {len(records)} records matching name: {args.name} in state: {args.state.upper()}")
+            scope = {'us': 'US', 'ca': 'Canada', 'all': 'US + Canada'}.get(args.country, args.country)
+            print(f"Found {len(records)} record(s) [{scope}]")
             for record in records:
                 if args.verbose:
                     db.display_verbose_record(record)
                 else:
                     FCCDatabase.display_record(record)
         else:
-            print(f"No records found matching name: {args.name} in state: {args.state.upper()}")
+            print("No records found for the given criteria.")
         return
-    
-    # Search by name only
-    if args.name:
-        records = db.search_records_by_name(args.name)
-        if records:
-            print(f"Found {len(records)} records matching name: {args.name} (case-insensitive)")
-            for record in records:
-                if args.verbose:
-                    db.display_verbose_record(record)
-                else:
-                    FCCDatabase.display_record(record)
-        else:
-            print(f"No records found matching name: {args.name} (case-insensitive)")
-        return
-    
-    # Search by state only
-    if args.state:
-        records = db.search_records_by_state(args.state)
-        if records:
-            print(f"Found {len(records)} records in state: {args.state.upper()}")
-            for record in records:
-                if args.verbose:
-                    db.display_verbose_record(record)
-                else:
-                    FCCDatabase.display_record(record)
-        else:
-            print(f"No records found in state: {args.state.upper()}")
-        return
-    
-    # Look up call sign
-    if args.callsign:
-        call_sign = args.callsign.upper()  # Convert the call sign to uppercase
-        record = db.get_record_by_call_sign(call_sign)
-        
-        if record:
-            if args.verbose:
-                db.display_verbose_record(record)
-            else:
-                # Add call sign to the record for display
-                record['call_sign'] = call_sign
-                FCCDatabase.display_record(record)
-        else:
-            print(f"No record found for call sign: {call_sign}")
-        return
-    
+
     # If we get here, no valid options were provided
     if not any([args.callsign, args.name, args.state, args.update, args.check_update, 
                 args.compact, args.optimize, args.rebuild_indexes, args.active_only,

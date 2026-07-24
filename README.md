@@ -5,6 +5,7 @@ A comprehensive utility for managing and querying FCC amateur radio license data
 ## Table of Contents 📑
 
 - [Overview](#overview)
+- [How to Use (Video)](#how-to-use-video-)
 - [Author and License](#author-and-license)
 - [Features](#features)
   - [Web Interface](#web-interface)
@@ -28,6 +29,20 @@ FCC Tool is a command-line and web application that creates and maintains a comp
 
 The offline nature of this tool makes it particularly valuable for amateur radio operators in the field, emergency communications scenarios, or any situation where internet access may be limited or unavailable.
 
+FCC Tool can optionally also mirror the **Canadian** amateur database from Innovation, Science and Economic Development Canada (ISED) into the same local database, giving you a unified US + Canada offline lookup. This is entirely opt-in via `--country` (see [Canadian (ISED) Data](#canadian-ised-data-)); by default the tool works with US/FCC data only, exactly as before.
+
+
+[↑ Back to Table of Contents](#table-of-contents-)
+
+## How to Use (Video) 📺
+
+A short walkthrough of installing and using FCC Tool:
+
+<!-- GitHub renders the <video> tag below as an inline player. If it doesn't
+     play in your viewer, use the direct link underneath. -->
+<video src="https://raw.githubusercontent.com/tirandagan/fccULSloader/main/docs/how-to-use.mp4" controls width="100%"></video>
+
+▶️ **[Watch the how-to video](docs/how-to-use.mp4)** (`docs/how-to-use.mp4`)
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
@@ -144,15 +159,19 @@ The primary function of FCC Tool is to look up FCC license information by call s
 
 #### Name Search
 
-You can search for FCC license records by name using a case-insensitive wildcard search that matches names in any position. This is useful for finding all licenses associated with a particular person or organization.
+You can search for license records by name using a case-insensitive search that matches names in any position. The search is **order-agnostic**: `"Brian Burk"` matches a record stored as `"Burk, Brian"` — each word just has to appear somewhere in the name, in any order. This is useful for finding all licenses associated with a particular person or organization.
 
-#### State Filtering
+#### State / Province Filtering
 
-The tool allows you to search for records by state using the two-letter state code. This is helpful for finding all licensees in a specific geographic area.
+The tool allows you to search for records by two-letter state code (US) or province code (Canada). This is helpful for finding all licensees in a specific geographic area.
+
+#### Country Scope (US / Canada)
+
+With the optional Canadian data loaded, you can scope any query to the US (FCC), Canada (ISED), or both at once via `--country` (CLI) or the Country selector (web). See [Canadian (ISED) Data](#canadian-ised-data-).
 
 #### Combined Searches
 
-You can combine name and state filters to perform more targeted searches, such as finding all licensees with a specific name in a particular state.
+You can combine name and state/province filters to perform more targeted searches, such as finding all licensees with a specific name in a particular state.
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
@@ -205,6 +224,16 @@ This will start a Flask web server on port 5000. You can then access the web int
 http://localhost:5000
 ```
 
+**Choosing a different port:** If port 5000 is already in use, pass `--port` (or set the `PORT` environment variable). This is common on macOS, where the **AirPlay Receiver** listens on port 5000 by default:
+
+```bash
+python src/fcc_tool_web.py --port 8000
+# or
+PORT=8000 python src/fcc_tool_web.py
+```
+
+You can also override the bind address with `--host` (or the `HOST` env var), which defaults to `0.0.0.0`.
+
 The web interface provides:
 
 1. **Search Options**:
@@ -247,14 +276,15 @@ FCC Tool provides a comprehensive set of command-line options for database manag
 | `--optimize` | Remove unused tables and compact the database |
 | `--rebuild-indexes` | Rebuild database indexes to improve search performance |
 | `--active-only` | Only keep active license records (license_status="A") in the database. Requires confirmation before deleting records |
+| `--country {us,ca,all}` | Which country's data to download/load/query — `us` (FCC, **default**), `ca` (Canada/ISED), or `all` (both). Canadian data loads into the **same** database alongside the FCC data. No effect on `--active-only` (all Canadian records are active). |
 
 #### Query Options
 
 | Option | Description |
 |--------|-------------|
 | `--callsign CALLSIGN` | Look up a specific amateur radio call sign |
-| `--name NAME` | Search for records by name (case-insensitive wildcard search) |
-| `--state STATE` | Filter records by two-letter state code (e.g., CA, NY, TX) |
+| `--name NAME` | Search for records by name. Case-insensitive and **order-agnostic** — `"Brian Burk"` matches a record stored as `"Burk, Brian"`. Each word must appear somewhere in the name, in any order. |
+| `--state STATE` | Filter records by two-letter **state** (US, e.g. CA, NY, TX) or **province** (CA, e.g. ON, QC, BC) code |
 | `--verbose` | Display all fields for each record, including related records from other tables |
 
 [↑ Back to Table of Contents](#table-of-contents-)
@@ -340,6 +370,46 @@ Display detailed information for search results:
 python fcc_tool.py --name "Smith" --verbose
 ```
 
+Search by name regardless of stored order (matches "Burk, Brian"):
+```
+python fcc_tool.py --name "Brian Burk"
+```
+
+#### Canadian (ISED) Data 🇨🇦
+
+FCC Tool can optionally mirror the Canadian amateur database from Innovation,
+Science and Economic Development Canada (ISED) into the **same** SQLite file,
+giving you a unified US + Canada lookup. This is entirely opt-in via
+`--country`; without it, the tool behaves exactly as before (US only).
+
+Download and load **both** US and Canadian data:
+```
+python fcc_tool.py --update --country all
+```
+
+Load **only** the Canadian data:
+```
+python fcc_tool.py --update --country ca
+```
+
+Look up a Canadian call sign:
+```
+python fcc_tool.py --callsign VE3XYZ --country ca
+```
+
+Search Canadian records by name and province, and query both countries at once:
+```
+python fcc_tool.py --name "Tremblay" --state QC --country ca
+python fcc_tool.py --callsign VA2AA --country all
+```
+
+The Canadian source is the ISED "Amateur Call Sign List"
+(`amateur_delim.zip`). It provides callsign, name, address, province, and
+qualification level (Basic / Basic with Honours / Advanced). ISED publishes
+only assigned callsigns, so all Canadian records are treated as active.
+Canadian data is licensed under the
+[Open Government Licence – Canada](https://open.canada.ca/en/open-government-licence-canada).
+
 [↑ Back to Table of Contents](#table-of-contents-)
 
 ## Project Structure
@@ -380,11 +450,20 @@ When running the application, additional directories are created:
 ```
 fcc-tool/
 ├── data/                 # Data directory (created automatically)
-│   ├── fcc_data.db       # SQLite database
-│   └── fcc_metadata.json # Metadata about the last download
+│   ├── fcc_data.db       # SQLite database (holds both US and, if loaded, CA data)
+│   ├── fcc_metadata.json # Metadata about the last FCC download
+│   ├── ised_metadata.json# Metadata about the last ISED (Canada) download
+│   ├── extracted/        # Extracted FCC .dat files
+│   └── extracted_ca/     # Extracted ISED (Canada) data file
 └── logs/                 # Log directory (created automatically)
     └── fcc_tool.log      # Application log file
 ```
+
+Key modules (`src/modules/`) include `config.py` (paths/URLs/knobs),
+`schemas.py` (table/index/view definitions — single source of truth for data
+structure), `database.py` (all SQL/queries, incl. the unified `licenses`
+view), `loader.py` (FCC `.dat` bulk loader), `ised_loader.py` (Canadian ISED
+loader), and `updater.py` (download/extract/load orchestration).
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
@@ -395,7 +474,11 @@ The database path and other configuration settings are defined in the `modules/c
 - `DB_PATH`: Path to the SQLite database file
 - `DATA_PATH`: Directory for storing data files
 - `ZIP_FILE_URL`: URL for downloading the FCC database
-- `TABLES_TO_PROCESS`: List of tables to process during data loading
+- `TABLES_TO_PROCESS`: List of FCC tables to process during data loading
+- `HTTP_TIMEOUT`: `(connect, read)` timeouts (seconds) for all downloads/update checks
+- `DEFAULT_COUNTRY`: Default country scope when `--country` is omitted (`us` | `ca` | `all`)
+- `ISED_ZIP_FILE_URL`: URL for the Canadian (ISED) "Amateur Call Sign List"
+- `ISED_EXTRACT_PATH` / `ISED_METADATA_FILE`: Canadian download/extract locations
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
@@ -411,6 +494,11 @@ The FCC database contains multiple tables with information about amateur radio l
 - `LA`: License attachments
 - `SC`: Special conditions
 - `SF`: Special free form conditions
+
+When Canadian data is loaded (`--country ca|all`), one additional table and a view are present:
+
+- `CA_AM`: Canadian (ISED) amateur records — one flat row per callsign (callsign, name, address, province, qualification flags, club fields)
+- `licenses` (view): a unified, presentation-friendly read model over both sources, exposing `country`, `call_sign`, `formatted_name`, `state` (US state or CA province), `license_class`, `license_status`, and address fields. This is what powers cross-country queries.
 
 > I created a detailed information about the FCC database structure, tables, fields, and their meanings, see the [FCC Database Documentation](FCC_DATABASE_DOC.md).
 
@@ -451,6 +539,6 @@ Contributions are welcome! Please feel free to submit a Pull Request or open an 
 
 For a detailed list of changes between versions, please see the [CHANGELOG.md](CHANGELOG.md) file.
 
-The current version is 1.7.0, which adds the `--active-only` feature to filter out inactive license records.
+The current version is 1.8.0, which adds `--port`/`--host` options to the web interface so it can run on a port other than 5000 (useful when macOS AirPlay Receiver occupies port 5000).
 
 [↑ Back to Table of Contents](#table-of-contents-)

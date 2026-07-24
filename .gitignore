@@ -45,4 +45,8 @@ build/
 *.egg-info/
 
 # Build artifacts
-*.spec 
+*.spec
+
+# Claude Code
+.claude/
+CLAUDE.md 

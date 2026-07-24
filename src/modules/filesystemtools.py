@@ -161,24 +161,31 @@ def delete_directory(directory_path):
         print(f"Warning: Could not delete directory {directory_path}: {e}")
         return False
 
-def cleanup_temp_files():
+def cleanup_temp_files(zip_path=None, extract_path=None):
     """
     Delete temporary files and directories after successful database loading.
-    This includes the downloaded zip file and the extracted directory.
-    
+    This includes a downloaded zip file and its extracted directory.
+
+    Args:
+        zip_path (str): Zip file to delete (defaults to the FCC zip).
+        extract_path (str): Extraction directory to delete (defaults to FCC extract dir).
+
     Returns:
         bool: True if all files were deleted successfully, False otherwise
     """
+    zip_path = zip_path or config.Config.ZIP_FILE_PATH
+    extract_path = extract_path or config.Config.EXTRACT_PATH
+
     logging.info("Cleaning up temporary files...")
-    
+
     # Delete the zip file
-    zip_deleted = delete_file(config.Config.ZIP_FILE_PATH)
+    zip_deleted = delete_file(zip_path)
     if zip_deleted:
-        print(f"Deleted zip file: {os.path.basename(config.Config.ZIP_FILE_PATH)}")
-    
+        print(f"Deleted zip file: {os.path.basename(zip_path)}")
+
     # Delete the extracted directory
-    extract_deleted = delete_directory(config.Config.EXTRACT_PATH)
+    extract_deleted = delete_directory(extract_path)
     if extract_deleted:
-        print(f"Deleted extracted directory: {os.path.basename(config.Config.EXTRACT_PATH)}")
-    
-    return zip_deleted and extract_deleted 
+        print(f"Deleted extracted directory: {os.path.basename(extract_path)}")
+
+    return zip_deleted and extract_deleted

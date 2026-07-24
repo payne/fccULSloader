@@ -66,7 +66,9 @@ import sqlite3
 import re
 import os
 import logging
-from modules.schemas import table_schemas, index_schemas, column_counts
+from modules.schemas import (
+    table_schemas, index_schemas, column_counts, view_schemas, view_required_tables
+)
 from modules import fcc_code_defs
 from modules.filesystemtools import ensure_directory, file_exists
 
@@ -74,6 +76,64 @@ class FCCDatabase:
     def __init__(self, db_path):
         self.db_path = db_path
         self.ensure_db_directory()
+
+    @staticmethod
+    def _name_match_clause(name, columns):
+        """
+        Build an order-agnostic, case-insensitive name-match SQL fragment.
+
+        The query is split into whitespace/comma-separated tokens; EACH token
+        must appear (as a substring) in AT LEAST ONE of the given columns, and
+        tokens may match in any order. So "Brian Burk" matches a record stored
+        as entity_name "Burk, Brian" as well as one split into
+        first_name="Brian", last_name="Burk". A single token behaves as a plain
+        wildcard search.
+
+        Args:
+            name (str): The raw user-entered name.
+            columns (list[str]): Column expressions to search (e.g. EN.first_name).
+
+        Returns:
+            tuple[str, list]: (clause_sql, params) — clause is safe to drop into
+            a WHERE (already parenthesized per token); params are '%token%'
+            wildcards to bind positionally. Returns ("1=0", []) if no tokens.
+        """
+        tokens = [t for t in re.split(r'[,\s]+', name.strip()) if t]
+        if not tokens:
+            return "1=0", []
+        clauses = []
+        params = []
+        for tok in tokens:
+            ors = " OR ".join(f"LOWER({c}) LIKE LOWER(?)" for c in columns)
+            clauses.append(f"({ors})")
+            params.extend([f"%{tok}%"] * len(columns))
+        return " AND ".join(clauses), params
+
+    def create_views(self):
+        """
+        (Re)create the unified `licenses` view over both data sources.
+
+        Ensures every table the view references exists first (an empty table is
+        fine) so both UNION arms are always valid regardless of which country
+        was loaded, then drops and recreates each view.
+        """
+        conn = self.create_connection()
+        if not conn:
+            return
+        try:
+            c = conn.cursor()
+            for t in view_required_tables:
+                c.execute(table_schemas[t])
+            for view_name, view_sql in view_schemas.items():
+                c.execute(f"DROP VIEW IF EXISTS {view_name}")
+                c.execute(view_sql)
+            conn.commit()
+            logging.info(f"Created/refreshed views: {', '.join(view_schemas.keys())}")
+        except sqlite3.Error as e:
+            logging.error(f"Error creating views: {e}")
+            print(f"Error creating views: {e}")
+        finally:
+            conn.close()
 
     def ensure_db_directory(self):
         """
@@ -313,9 +373,11 @@ class FCCDatabase:
             # Get all tables in the database
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             all_tables = [table[0] for table in cursor.fetchall()]
-            
-            # Tables used in our queries
-            used_tables = ['EN', 'HD']
+
+            # Tables used in our queries and the unified `licenses` view.
+            # AM (operator class) and CA_AM (Canadian data) MUST be retained or
+            # the view breaks; EN/HD power US lookups.
+            used_tables = ['EN', 'HD', 'AM', 'CA_AM']
             
             # Tables to be removed
             tables_to_remove = [table for table in all_tables if table not in used_tables and not table.startswith('sqlite_')]
@@ -359,11 +421,14 @@ class FCCDatabase:
                         print(f"Optimized table {table}: removed {removed_columns} unused columns")
             
             conn.commit()
-            
+
             # Compact the database after optimization
             cursor.execute("VACUUM")
-            
+
             conn.close()
+
+            # Recreate the unified view (a dropped/rebuilt table can invalidate it).
+            self.create_views()
             print(f"Database optimized successfully: {self.db_path}")
             if not tables_to_remove:
                 print("No unused tables found to remove.")
@@ -386,61 +451,59 @@ class FCCDatabase:
             list: A list of dictionaries containing the matching records.
         """
         try:
-            # Create search pattern for wildcard search
-            search_pattern = f"%{name}%"
-            
+            # Order-agnostic, multi-token name match (see _name_match_clause):
+            # "Brian Burk" matches entity_name "Burk, Brian" and first/last splits.
+            name_clause, name_params = self._name_match_clause(
+                name, ["EN.entity_name", "EN.first_name", "EN.mi", "EN.last_name"]
+            )
+
             # Optimize the query to use indexes more effectively
             # First, get the unique_system_identifier values that match our criteria
-            query = """
+            query = f"""
             WITH matching_ids AS (
                 SELECT DISTINCT EN.unique_system_identifier
-                FROM EN 
+                FROM EN
                 JOIN HD ON EN.unique_system_identifier = HD.unique_system_identifier
-                WHERE (
-                    LOWER(EN.entity_name) LIKE LOWER(?) OR 
-                    LOWER(EN.first_name) LIKE LOWER(?) OR 
-                    LOWER(EN.mi) LIKE LOWER(?) OR 
-                    LOWER(EN.last_name) LIKE LOWER(?)
-                )
+                WHERE ({name_clause})
                 AND HD.license_status = 'A'
             )
-            SELECT 
+            SELECT
                 EN.*,
                 HD.call_sign,
                 HD.license_status,
                 AM.operator_class as license_class,
-                CASE 
-                    WHEN EN.entity_name IS NOT NULL AND EN.entity_name != '' 
+                CASE
+                    WHEN EN.entity_name IS NOT NULL AND EN.entity_name != ''
                     THEN EN.entity_name
                     ELSE TRIM(
-                        COALESCE(EN.first_name, '') || ' ' || 
-                        COALESCE(EN.mi, '') || ' ' || 
+                        COALESCE(EN.first_name, '') || ' ' ||
+                        COALESCE(EN.mi, '') || ' ' ||
                         COALESCE(EN.last_name, '')
                     )
                 END as formatted_name
-            FROM EN 
+            FROM EN
             JOIN HD ON EN.unique_system_identifier = HD.unique_system_identifier
             LEFT JOIN AM ON EN.unique_system_identifier = AM.unique_system_identifier
             JOIN matching_ids ON EN.unique_system_identifier = matching_ids.unique_system_identifier
             ORDER BY HD.call_sign
             """
-            
+
             conn = self.create_connection()
             if not conn:
                 print("Error: Could not create database connection")
                 return []
-                
+
             # Enable query optimization
             conn.execute("PRAGMA optimize")
             cursor = conn.cursor()
-            
+
             try:
-                cursor.execute(query, (search_pattern, search_pattern, search_pattern, search_pattern))
+                cursor.execute(query, name_params)
                 records = cursor.fetchall()
             except sqlite3.Error as e:
                 print(f"SQL Error in search_records_by_name: {e}")
                 print(f"Query: {query}")
-                print(f"Parameters: {(search_pattern, search_pattern, search_pattern, search_pattern)}")
+                print(f"Parameters: {name_params}")
                 return []
             
             result_list = []
@@ -560,25 +623,22 @@ class FCCDatabase:
         Returns:
             list: A list of dictionaries containing the matching records.
         """
-        # Create search pattern for wildcard search
-        search_pattern = f"%{name}%"
-        
+        # Order-agnostic, multi-token name match (see _name_match_clause).
+        name_clause, name_params = self._name_match_clause(
+            name, ["EN.entity_name", "EN.first_name", "EN.mi", "EN.last_name"]
+        )
+
         # Base query for name search - optimize with CTE
-        query = """
+        query = f"""
         WITH matching_ids AS (
             SELECT DISTINCT EN.unique_system_identifier
-            FROM EN 
+            FROM EN
             JOIN HD ON EN.unique_system_identifier = HD.unique_system_identifier
-            WHERE (
-                LOWER(EN.entity_name) LIKE LOWER(?) OR 
-                LOWER(EN.first_name) LIKE LOWER(?) OR 
-                LOWER(EN.mi) LIKE LOWER(?) OR 
-                LOWER(EN.last_name) LIKE LOWER(?)
-            )
+            WHERE ({name_clause})
         """
-        
+
         # Add state filter if provided
-        params = [search_pattern, search_pattern, search_pattern, search_pattern]
+        params = list(name_params)
         if state:
             state = state.upper()
             query += "AND UPPER(EN.state) = ? "
@@ -643,6 +703,65 @@ class FCCDatabase:
         except sqlite3.Error as e:
             print(f"Error searching records by name and state: {e}")
             return []
+
+    # ------------------------------------------------------------------
+    # Canadian (ISED) queries — read through the unified `licenses` view.
+    # CA_AM is small (~92k rows) so a view scan is trivially fast; the
+    # optimized indexed EN/HD/AM path stays reserved for the large US tables.
+    # CA result dicts expose the same keys the US path/display code uses
+    # (call_sign, formatted_name, city, state, zip_code, license_class,
+    # license_status) plus a 'country' tag.
+    # ------------------------------------------------------------------
+    _CA_SELECT = """
+        SELECT country, call_sign, formatted_name, first_name, last_name,
+               street_address, city, state, postal_code AS zip_code,
+               license_class, license_status
+        FROM licenses
+        WHERE country = 'CA'
+    """
+
+    def _run_ca_query(self, where_extra, params):
+        """Execute a CA view query and return a list of result dicts."""
+        query = self._CA_SELECT + where_extra
+        try:
+            conn = self.create_connection()
+            if not conn:
+                return []
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            field_names = [d[0] for d in cursor.description]
+            results = [dict(zip(field_names, row)) for row in rows]
+            conn.close()
+            return results
+        except sqlite3.Error as e:
+            logging.error(f"Error querying Canadian records: {e}")
+            return []
+
+    def get_ca_records_by_call_sign(self, call_sign):
+        """Return Canadian records for a callsign (list; normally 0 or 1)."""
+        return self._run_ca_query(" AND call_sign = ? ORDER BY call_sign", (call_sign,))
+
+    def search_ca_records(self, name=None, province=None):
+        """
+        Search Canadian records by name and/or province.
+
+        Name matching is order-agnostic across formatted_name/first_name/
+        last_name (see _name_match_clause). Province reuses the 'state' column.
+        """
+        where = ""
+        params = []
+        if name:
+            clause, name_params = self._name_match_clause(
+                name, ["formatted_name", "first_name", "last_name"]
+            )
+            where += f" AND ({clause})"
+            params.extend(name_params)
+        if province:
+            where += " AND UPPER(state) = ?"
+            params.append(province.upper())
+        where += " ORDER BY call_sign"
+        return self._run_ca_query(where, params)
 
     def rebuild_indexes(self):
         """
@@ -871,58 +990,79 @@ class FCCDatabase:
                     print(f"{f}: {record[f]}")
         print("-" * 40)  # Separator between records
 
-    def search_records(self, callsign=None, name=None, state=None, sort=None, status=None, license_class=None, page=1, per_page=20):
+    def search_records(self, callsign=None, name=None, state=None, sort=None, status=None,
+                        license_class=None, country="us", page=1, per_page=20):
         """
-        Search for records based on various criteria.
-        
+        Search for records based on various criteria, across one or both countries.
+
         Args:
             callsign (str): Call sign to search for
             name (str): Name to search for
-            state (str): State to filter by
+            state (str): State/province to filter by
             sort (str): Field to sort by
             status (str): License status to filter by
             license_class (str): License class to filter by
+            country (str): 'us' (FCC only), 'ca' (ISED only), or 'all' (both).
+                           Defaults to 'us' so existing callers are unchanged.
             page (int): Page number (1-based)
             per_page (int): Number of results per page
-            
+
         Returns:
-            dict: Dictionary containing records and total count
+            dict: Dictionary containing records (each tagged with 'country') and total count
         """
         try:
+            country = (country or "us").lower()
+            want_us = country in ("us", "all")
+            want_ca = country in ("ca", "all")
             results = []
+
             if callsign:
-                rec = self.get_record_by_call_sign(callsign)
-                if rec:
-                    rec['call_sign'] = callsign
-                    results = [rec]
-            elif name and state:
-                results = self.search_records_by_name_and_state(name, state)
-            elif name:
-                results = self.search_records_by_name(name)
-            elif state:
-                results = self.search_records_by_state(state)
-            
+                if want_us:
+                    rec = self.get_record_by_call_sign(callsign)
+                    if rec:
+                        rec['call_sign'] = callsign
+                        rec['country'] = 'US'
+                        results.append(rec)
+                if want_ca:
+                    results.extend(self.get_ca_records_by_call_sign(callsign))
+            else:
+                if want_us:
+                    if name and state:
+                        us = self.search_records_by_name_and_state(name, state)
+                    elif name:
+                        us = self.search_records_by_name(name)
+                    elif state:
+                        us = self.search_records_by_state(state)
+                    else:
+                        us = []
+                    for r in us:
+                        r['country'] = 'US'
+                    results.extend(us)
+                if want_ca and (name or state):
+                    # For CA the 'state' filter is a province code.
+                    results.extend(self.search_ca_records(name=name, province=state))
+
             # Filter by status if requested
             if status:
                 results = [r for r in results if r.get('license_status', '').upper() == status.upper()]
-            
+
             # Filter by license class if requested
             if license_class:
                 results = [r for r in results if r.get('license_class', '').upper() == license_class.upper()]
-            
+
             # Sort if requested
             if sort:
                 results = sorted(results, key=lambda r: (r.get(sort, '') or '').upper())
-            
+
             total_results = len(results)
             start = (page - 1) * per_page
             end = start + per_page
-            
+
             return {
                 'records': results[start:end],
                 'total': total_results
             }
-            
+
         except Exception as e:
-            logger.error(f"Error searching records: {e}")
-            raise DatabaseError("Failed to search records") from e
+            logging.error(f"Error searching records: {e}")
+            return {'records': [], 'total': 0}

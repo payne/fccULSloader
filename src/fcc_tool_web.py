@@ -33,6 +33,10 @@ try:
     db = FCCDatabase(Config.DB_PATH)
     if not db.database_exists():
         logger.error("Database does not exist. Please run 'python fcc_tool.py --update' to create and populate the database.")
+    else:
+        # Ensure the unified `licenses` view exists (e.g. for a database built
+        # before Canadian support was added), so country=ca|all queries work.
+        db.create_views()
 except Exception as e:
     logger.error(f"Failed to initialize database: {e}")
     db = None
@@ -1201,16 +1205,26 @@ SEARCH_FORM = '''
                         <label for="name">Name</label>
                         <span class="keyboard-shortcut">Alt + N</span>
                     </div>
+                    <div class="form-floating">
+                        <select class="form-select" id="country" name="country">
+                            {% for c_code, c_name in country_options.items() %}
+                            <option value="{{ c_code }}" {{ 'selected' if country == c_code else '' }}>
+                                {{ c_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <label for="country">Country</label>
+                    </div>
                     <div class="form-floating state-select-container">
                         <select class="form-select" id="state" name="state">
-                            <option value="">All States</option>
+                            <option value="">All States / Provinces</option>
                             {% for state_code, state_name in states.items() %}
                             <option value="{{ state_code }}" {{ 'selected' if state == state_code else '' }}>
                                 {{ state_name }}
                             </option>
                             {% endfor %}
                         </select>
-                        <label for="state">State</label>
+                        <label for="state">State / Province</label>
                         <span class="keyboard-shortcut">Alt + S</span>
                         <div class="state-select-search" id="stateSearch">
                             <input type="text" class="form-control mb-2" id="stateSearchInput" placeholder="Search states...">
@@ -1755,7 +1769,8 @@ RESULTS_TEMPLATE = '''
                     <input type="hidden" name="callsign" value="{{ request.args.get('callsign', '') }}">
                     <input type="hidden" name="name" value="{{ request.args.get('name', '') }}">
                     <input type="hidden" name="state" value="{{ request.args.get('state', '') }}">
-                    
+                    <input type="hidden" name="country" value="{{ country }}">
+
                     <div class="col-md-3">
                         <label class="form-label">Sort by</label>
                         <select name="sort" class="form-select" onchange="this.form.submit()">
@@ -1806,7 +1821,8 @@ RESULTS_TEMPLATE = '''
                             <tr>
                                 <th><a href="{{ url_for('search', **dict(request.args, sort='call_sign')) }}">Call Sign{% if sort=='call_sign' %} <i class="bi bi-arrow-down"></i>{% endif %}</a></th>
                                 <th><a href="{{ url_for('search', **dict(request.args, sort='name')) }}">Name{% if sort=='name' %} <i class="bi bi-arrow-down"></i>{% endif %}</a></th>
-                                <th><a href="{{ url_for('search', **dict(request.args, sort='state')) }}">State{% if sort=='state' %} <i class="bi bi-arrow-down"></i>{% endif %}</a></th>
+                                <th><a href="{{ url_for('search', **dict(request.args, sort='country')) }}">Country{% if sort=='country' %} <i class="bi bi-arrow-down"></i>{% endif %}</a></th>
+                                <th><a href="{{ url_for('search', **dict(request.args, sort='state')) }}">State / Prov{% if sort=='state' %} <i class="bi bi-arrow-down"></i>{% endif %}</a></th>
                                 <th>Status</th>
                                 <th>Class</th>
                                 <th>Actions</th>
@@ -1817,6 +1833,11 @@ RESULTS_TEMPLATE = '''
                             <tr>
                                 <td><a href="{{ url_for('profile', callsign=r['call_sign']) }}">{{ r['call_sign'] }}</a></td>
                                 <td>{{ r.get('formatted_name', '') }}</td>
+                                <td>
+                                    <span class="badge {% if r.get('country') == 'CA' %}bg-danger{% else %}bg-primary{% endif %}">
+                                        {{ r.get('country', 'US') }}
+                                    </span>
+                                </td>
                                 <td>{{ r.get('state', '') }}</td>
                                 <td>
                                     <span class="badge {% if r.get('license_status', '') == 'A' %}bg-success{% else %}bg-secondary{% endif %}">
@@ -1853,6 +1874,9 @@ RESULTS_TEMPLATE = '''
                                 <h5 class="card-title">{{ r['call_sign'] }}</h5>
                                 <h6 class="card-subtitle text-muted">{{ r.get('formatted_name', '') }}</h6>
                                 <div class="mb-3">
+                                    <span class="badge {% if r.get('country') == 'CA' %}bg-danger{% else %}bg-primary{% endif %}">
+                                        {{ r.get('country', 'US') }}
+                                    </span>
                                     <span class="badge {% if r.get('license_status', '') == 'A' %}bg-success{% else %}bg-secondary{% endif %}">
                                         {{ 'Active' if r.get('license_status', '') == 'A' else 'Inactive' }}
                                     </span>
@@ -2642,15 +2666,38 @@ STATES = {
     'PR': 'Puerto Rico', 'VI': 'U.S. Virgin Islands'
 }
 
-# Add license class mapping
+# Canadian provinces / territories (ISED uses these 2-letter codes in the
+# province field; reused in the shared State/Province dropdown when Canada is
+# in scope).
+PROVINCES = {
+    'AB': 'Alberta (CA)', 'BC': 'British Columbia (CA)', 'MB': 'Manitoba (CA)',
+    'NB': 'New Brunswick (CA)', 'NL': 'Newfoundland and Labrador (CA)',
+    'NS': 'Nova Scotia (CA)', 'NT': 'Northwest Territories (CA)',
+    'NU': 'Nunavut (CA)', 'ON': 'Ontario (CA)', 'PE': 'Prince Edward Island (CA)',
+    'QC': 'Quebec (CA)', 'SK': 'Saskatchewan (CA)', 'YT': 'Yukon (CA)'
+}
+
+# Combined dropdown options (US states first, then Canadian provinces). Note:
+# NS/NB/NT/PE/ON/QC etc. are Canadian; US 2-letter codes never collide with
+# these, so a merged dict is unambiguous for filtering.
+STATES_AND_PROVINCES = {**STATES, **PROVINCES}
+
+# Add license class mapping (FCC single-letter classes + derived Canadian codes).
 LICENSE_CLASS_MAP = {
     'E': 'Amateur Extra',
     'G': 'General',
     'T': 'Technician',
     'N': 'Novice',
     'A': 'Advanced',
-    'P': 'Technician Plus'
+    'P': 'Technician Plus',
+    # Canadian (ISED) qualification levels derived in the `licenses` view.
+    'CA_BAS': 'Basic',
+    'CA_HON': 'Basic w/ Honours',
+    'CA_ADV': 'Advanced'
 }
+
+# Country dropdown options.
+COUNTRY_OPTIONS = {'us': 'United States', 'ca': 'Canada', 'all': 'US + Canada'}
 
 # Add FCC code definitions
 FCC_CODE_DEFS = {
@@ -2705,7 +2752,7 @@ def add_to_recent_searches(search_params):
     if filtered_params.get('name'):
         display_parts.append(filtered_params['name'])
     if filtered_params.get('state'):
-        display_parts.append(STATES.get(filtered_params['state'], filtered_params['state']))
+        display_parts.append(STATES_AND_PROVINCES.get(filtered_params['state'], filtered_params['state']))
     
     # Create a search entry
     search = {
@@ -2735,7 +2782,9 @@ def index():
         favicon=FAVICON,
         common_js=COMMON_JS,
         common_css=COMMON_CSS,
-        states=STATES,
+        states=STATES_AND_PROVINCES,
+        country_options=COUNTRY_OPTIONS,
+        country=Config.DEFAULT_COUNTRY,
         recent_searches=recent_searches
     )
 
@@ -2748,6 +2797,9 @@ def search():
     sort = request.args.get('sort', '')
     status = request.args.get('status', '')
     license_class = request.args.get('license_class', '')
+    country = request.args.get('country', Config.DEFAULT_COUNTRY).strip().lower()
+    if country not in ('us', 'ca', 'all'):
+        country = Config.DEFAULT_COUNTRY
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 20))
 
@@ -2771,6 +2823,7 @@ def search():
         sort=sort,
         status=status,
         license_class=license_class,
+        country=country,
         page=page,
         per_page=per_page
     )
@@ -2787,18 +2840,23 @@ def search():
         sort=sort,
         status=status,
         license_class=license_class,
+        country=country,
         per_page=per_page,
         request=request,
         page=page,
         total_pages=total_pages,
         LICENSE_CLASS_MAP=LICENSE_CLASS_MAP,
-        states=STATES
+        states=STATES_AND_PROVINCES
     )
 
 @app.route('/profile/<callsign>')
 @handle_database_error
 def profile(callsign):
     rec = db.get_record_by_call_sign(callsign.upper())
+    if not rec:
+        # Fall back to Canadian (ISED) data.
+        ca = db.get_ca_records_by_call_sign(callsign.upper())
+        rec = ca[0] if ca else None
     if not rec:
         return render_template_string(
             ERROR_TEMPLATE,
@@ -2854,4 +2912,18 @@ def debug_session():
     }
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    import argparse
+
+    parser = argparse.ArgumentParser(description='FCC Tool web interface')
+    parser.add_argument(
+        '--port', type=int, default=int(os.environ.get('PORT', 5000)),
+        help='Port to serve on (default: 5000, or the PORT env var). '
+             'Use this if port 5000 is taken — on macOS the AirPlay Receiver uses it.'
+    )
+    parser.add_argument(
+        '--host', default=os.environ.get('HOST', '0.0.0.0'),
+        help='Host/interface to bind to (default: 0.0.0.0)'
+    )
+    args = parser.parse_args()
+
+    app.run(debug=True, host=args.host, port=args.port)
