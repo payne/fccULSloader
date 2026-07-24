@@ -2,10 +2,21 @@
 
 A comprehensive utility for managing and querying FCC amateur radio license database files, creating a local SQLite copy of the entire FCC ULS database for offline use. Includes both a command-line interface and a modern web interface.
 
+## 📺 Watch: How to Use
+
+[![Watch the Offline Callsign Lookup walkthrough](docs/how-to-use-poster.jpg)](https://github.com/tirandagan/fccULSloader/blob/main/docs/how-to-use.mp4)
+
+▶️ **[Click the image to watch the walkthrough](https://github.com/tirandagan/fccULSloader/blob/main/docs/how-to-use.mp4)** — installing and using Offline Callsign Lookup (US + Canada lookups, CLI & web).
+
+<!-- Note: GitHub strips <video> tags that reference raw repo files, so a clickable
+     poster image is used above (it opens GitHub's built-in video player page).
+     To embed a TRUE inline player instead, edit this README on GitHub (pencil icon),
+     drag-and-drop docs/how-to-use.mp4 into the editor, and GitHub will insert a
+     playable https://github.com/user-attachments/assets/<id> URL — paste that here. -->
+
 ## Table of Contents 📑
 
 - [Overview](#overview)
-- [How to Use (Video)](#how-to-use-video-)
 - [Author and License](#author-and-license)
 - [Features](#features)
   - [Web Interface](#web-interface)
@@ -34,25 +45,13 @@ Offline Callsign Lookup can optionally also mirror the **Canadian** amateur data
 
 [↑ Back to Table of Contents](#table-of-contents-)
 
-## How to Use (Video) 📺
-
-A short walkthrough of installing and using Offline Callsign Lookup:
-
-<!-- GitHub renders the <video> tag below as an inline player. If it doesn't
-     play in your viewer, use the direct link underneath. -->
-<video src="https://raw.githubusercontent.com/tirandagan/fccULSloader/main/docs/how-to-use.mp4" controls width="100%"></video>
-
-▶️ **[Watch the how-to video](docs/how-to-use.mp4)** (`docs/how-to-use.mp4`)
-
-[↑ Back to Table of Contents](#table-of-contents-)
-
 ## Author and License
 
 **Author:** Tiran Dagan (Backstop Radio)  
 **Contact:** tiran@tirandagan.com  
 **License:** MIT License
 
-Copyright (c) 2025 Tiran Dagan
+Copyright (c) 2026 Tiran Dagan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

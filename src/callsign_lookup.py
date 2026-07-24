@@ -6,7 +6,7 @@ Author: Tiran Dagan (Backstop Radio)
 Contact: tiran@tirandagan.com
 License: MIT License
 
-Copyright (c) 2025 Tiran Dagan
+Copyright (c) 2026 Tiran Dagan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -139,7 +139,7 @@ def display_header():
     # Create the header content
     header_lines = [
         f"{APP_NAME} v{__version__}",
-        f"Copyright © 2025 Tiran Dagan (Backstop Radio)",
+        f"Copyright © 2026 Tiran Dagan (Backstop Radio)",
         "All rights reserved."
     ]
     

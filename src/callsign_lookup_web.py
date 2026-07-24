@@ -122,7 +122,7 @@ ERROR_TEMPLATE = '''
     </div>
     <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© 2025 BackStop Radio LLC</span>
+            <span class="text-muted">© 2026 BackStop Radio LLC</span>
         </div>
     </footer>
 </body>
@@ -1973,7 +1973,7 @@ RESULTS_TEMPLATE = '''
     
     <footer class="footer mt-auto py-3">
         <div class="container text-center">
-            <span class="text-muted">© 2025 BackStop Radio LLC</span>
+            <span class="text-muted">© 2026 BackStop Radio LLC</span>
         </div>
     </footer>
     
@@ -2510,7 +2510,7 @@ PROFILE_TEMPLATE = '''
     
     <footer class="footer mt-auto py-3">
         <div class="container text-center">
-            <span class="text-muted">© 2025 BackStop Radio LLC</span>
+            <span class="text-muted">© 2026 BackStop Radio LLC</span>
         </div>
     </footer>
 
