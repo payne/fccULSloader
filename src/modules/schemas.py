@@ -187,8 +187,98 @@ table_schemas = {
         status_code TEXT,
         status_date TEXT
     );
+    """,
+    # ------------------------------------------------------------------
+    # CA_AM — Canadian (ISED) amateur "Amateur Call Sign List".
+    # One flat record per callsign (no relational join, no unique id, no
+    # license status/dates). Source: amateur_delim.txt, ";"-delimited, 18
+    # fields, in file order. Qualification columns hold the flag letter
+    # (A/B/C/D/E) when held, else empty. Optional; only present when the
+    # user opts in via --country ca|all.
+    # ------------------------------------------------------------------
+    "CA_AM": """
+    CREATE TABLE IF NOT EXISTS CA_AM (
+        call_sign TEXT,
+        first_name TEXT,
+        surname TEXT,
+        street_address TEXT,
+        city TEXT,
+        province TEXT,
+        postal_code TEXT,
+        qual_basic TEXT,
+        qual_5wpm TEXT,
+        qual_12wpm TEXT,
+        qual_advanced TEXT,
+        qual_honours TEXT,
+        club_name TEXT,
+        club_name_2 TEXT,
+        club_address TEXT,
+        club_city TEXT,
+        club_province TEXT,
+        club_postal_code TEXT
+    );
     """
 }
+
+# View schemas — created AFTER the underlying tables load (a view over a
+# missing table errors at query time). `create_views()` in database.py
+# ensures the referenced tables exist (empty is fine) before creating these.
+view_schemas = {
+    # Unified, presentation-compatible read model over both data sources.
+    # Column names deliberately match the keys the CLI/web display code already
+    # reads (call_sign, formatted_name, state, license_class, license_status),
+    # so a Canadian province surfaces in `state` and a derived CA qualification
+    # code surfaces in `license_class`. `country` is the only new field.
+    "licenses": """
+    CREATE VIEW IF NOT EXISTS licenses AS
+        SELECT
+            'US' AS country,
+            HD.call_sign AS call_sign,
+            CASE
+                WHEN EN.entity_name IS NOT NULL AND EN.entity_name != ''
+                THEN EN.entity_name
+                ELSE TRIM(
+                    COALESCE(EN.first_name, '') || ' ' ||
+                    COALESCE(EN.mi, '') || ' ' ||
+                    COALESCE(EN.last_name, '')
+                )
+            END AS formatted_name,
+            EN.first_name AS first_name,
+            EN.last_name AS last_name,
+            EN.street_address AS street_address,
+            EN.city AS city,
+            EN.state AS state,
+            EN.zip_code AS postal_code,
+            AM.operator_class AS license_class,
+            HD.license_status AS license_status
+        FROM EN
+        JOIN HD ON EN.unique_system_identifier = HD.unique_system_identifier
+        LEFT JOIN AM ON EN.unique_system_identifier = AM.unique_system_identifier
+        UNION ALL
+        SELECT
+            'CA' AS country,
+            CA_AM.call_sign AS call_sign,
+            TRIM(COALESCE(CA_AM.first_name, '') || ' ' || COALESCE(CA_AM.surname, '')) AS formatted_name,
+            CA_AM.first_name AS first_name,
+            CA_AM.surname AS last_name,
+            CA_AM.street_address AS street_address,
+            CA_AM.city AS city,
+            CA_AM.province AS state,
+            CA_AM.postal_code AS postal_code,
+            CASE
+                WHEN CA_AM.qual_advanced = 'D' THEN 'CA_ADV'
+                WHEN CA_AM.qual_honours  = 'E' THEN 'CA_HON'
+                WHEN CA_AM.qual_basic    = 'A' THEN 'CA_BAS'
+                ELSE ''
+            END AS license_class,
+            'A' AS license_status
+        FROM CA_AM;
+    """
+}
+
+# Tables the `licenses` view references — must exist (empty is fine) before the
+# view can be queried, regardless of which country was actually loaded.
+view_required_tables = ["AM", "EN", "HD", "CA_AM"]
 
 index_schemas = {
     "AM": ["CREATE INDEX IF NOT EXISTS idx_AM_call_sign ON AM (call_sign);",
@@ -208,7 +298,11 @@ index_schemas = {
     "HS": ["CREATE INDEX IF NOT EXISTS idx_HS_call_sign ON HS (call_sign);"],
     "LA": ["CREATE INDEX IF NOT EXISTS idx_LA_call_sign ON LA (call_sign);"],
     "SC": ["CREATE INDEX IF NOT EXISTS idx_SC_call_sign ON SC (call_sign);"],
-    "SF": ["CREATE INDEX IF NOT EXISTS idx_SF_call_sign ON SF (call_sign);"]
+    "SF": ["CREATE INDEX IF NOT EXISTS idx_SF_call_sign ON SF (call_sign);"],
+    "CA_AM": ["CREATE INDEX IF NOT EXISTS idx_CA_AM_call_sign ON CA_AM (call_sign);",
+              "CREATE INDEX IF NOT EXISTS idx_CA_AM_surname ON CA_AM (surname);",
+              "CREATE INDEX IF NOT EXISTS idx_CA_AM_first_name ON CA_AM (first_name);",
+              "CREATE INDEX IF NOT EXISTS idx_CA_AM_province ON CA_AM (province);"]
 }
 
 column_counts = {
@@ -219,7 +313,8 @@ column_counts = {
     "HS": 6,
     "LA": 8,
     "SC": 9,
-    "SF": 11
+    "SF": 11,
+    "CA_AM": 18
 }
 
 field_names = {
@@ -269,5 +364,10 @@ field_names = {
         "record_type", "unique_system_identifier", "uls_file_number", "ebf_number", "call_sign",
         "license_free_form_type", "unique_license_free_form_identifier", "sequence_number",
         "license_free_form_condition", "status_code", "status_date"
+    ],
+    "CA_AM": [
+        "call_sign", "first_name", "surname", "street_address", "city", "province", "postal_code",
+        "qual_basic", "qual_5wpm", "qual_12wpm", "qual_advanced", "qual_honours",
+        "club_name", "club_name_2", "club_address", "club_city", "club_province", "club_postal_code"
     ]
 }

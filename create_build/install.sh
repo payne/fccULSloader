@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "FCC Tool Installer"
+echo "Offline Callsign Lookup Installer"
 
 # Check for Python installation
 if ! command -v python3 &> /dev/null; then
@@ -21,16 +21,16 @@ fi
 rm -rf build/ *.spec &> /dev/null
 
 # Create dist directory if it doesn't exist
-mkdir -p dist/fcc-tool-linux
+mkdir -p dist/callsign-lookup-linux
 
 # Get version from build_executable.py directly
 # Use a more reliable way to capture the version
-VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); from fcc_tool import __version__; print(__version__)")
+VERSION=$(python3 -c "import sys; sys.path.insert(0, 'src'); from callsign_lookup import __version__; print(__version__)")
 echo "Detected version: ${VERSION}"
 
 # Create a spec file with increased recursion limit to avoid recursion errors
 echo "Creating PyInstaller spec file with increased recursion limit..."
-cat > "fcc-tool-${VERSION}.spec" << 'EOF'
+cat > "callsign-lookup-${VERSION}.spec" << 'EOF'
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 sys.setrecursionlimit(sys.getrecursionlimit() * 10)  # Increase recursion limit
@@ -38,7 +38,7 @@ sys.setrecursionlimit(sys.getrecursionlimit() * 10)  # Increase recursion limit
 block_cipher = None
 
 a = Analysis(
-    ['src/fcc_tool.py'],
+    ['src/callsign_lookup.py'],
     pathex=[],
     binaries=[],
     datas=[('src/modules', 'modules'), ('LICENSE', '.'), ('README.md', '.'), ('FCC_DATABASE_DOC.md', '.')],
@@ -62,7 +62,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='fcc-tool-linux-VERSION',
+    name='callsign-lookup-linux-VERSION',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -79,11 +79,11 @@ exe = EXE(
 EOF
 
 # Replace VERSION placeholder with actual version in the spec file
-sed -i "s/fcc-tool-linux-VERSION/fcc-tool-linux-${VERSION}/g" "fcc-tool-${VERSION}.spec"
+sed -i "s/callsign-lookup-linux-VERSION/callsign-lookup-linux-${VERSION}/g" "callsign-lookup-${VERSION}.spec"
 
 echo "Building executable..."
 # Run PyInstaller directly with the spec file
-pyinstaller --clean --noconfirm --distpath=dist/fcc-tool-linux "fcc-tool-${VERSION}.spec"
+pyinstaller --clean --noconfirm --distpath=dist/callsign-lookup-linux "callsign-lookup-${VERSION}.spec"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to build executable."
     exit 1
@@ -94,11 +94,11 @@ echo "Cleaning up build artifacts..."
 rm -rf build/ *.spec &> /dev/null
 find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 find . -name "*.pyc" -delete 2>/dev/null || true
-rm -f fcc-tool-*.pkg fcc-tool-*.manifest warn-fcc-tool-*.txt &> /dev/null
+rm -f callsign-lookup-*.pkg callsign-lookup-*.manifest warn-callsign-lookup-*.txt &> /dev/null
 
 # Double-check that build folder is gone (sometimes it's recreated)
 sleep 1
 rm -rf build/ &> /dev/null
 
 echo "Build completed successfully."
-echo "Executable: dist/fcc-tool-linux/fcc-tool-linux-${VERSION}" 
+echo "Executable: dist/callsign-lookup-linux/callsign-lookup-linux-${VERSION}" 

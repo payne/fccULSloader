@@ -9,12 +9,12 @@ Description: Unit tests for database operations.
 import unittest
 import os
 import sqlite3
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 
-class TestFCCDatabase(unittest.TestCase):
+class TestCallsignLookupDatabase(unittest.TestCase):
     def setUp(self):
         self.db_path = "test_fcc_uls.db"
-        self.db = FCCDatabase(self.db_path)
+        self.db = CallsignLookupDatabase(self.db_path)
         self.db.create_tables()
 
     def tearDown(self):

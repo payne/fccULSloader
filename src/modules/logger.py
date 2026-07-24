@@ -34,7 +34,7 @@ Log Output:
 ----------
 Logs are written to both:
 - Standard output (console)
-- Log file (./logs/fcc_tool.log)
+- Log file (./logs/callsign_lookup.log)
 
 The log directory is automatically created if it doesn't exist.
 
@@ -60,7 +60,7 @@ def setup_logging(verbose=False):
     # Ensure logs directory exists
     ensure_directory('logs')
     
-    log_file_path = os.path.join("./logs", "fcc_tool.log")
+    log_file_path = os.path.join("./logs", "callsign_lookup.log")
     
     logging.basicConfig(
         level=log_level,

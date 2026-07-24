@@ -9,12 +9,12 @@ Description: Unit tests for loader module.
 import unittest
 import os
 from modules.loader import load_data
-from modules.database import FCCDatabase
+from modules.database import CallsignLookupDatabase
 
 class TestLoader(unittest.TestCase):
     def setUp(self):
         self.db_path = "test_fcc_uls.db"
-        self.db = FCCDatabase(self.db_path)
+        self.db = CallsignLookupDatabase(self.db_path)
         self.db.create_tables()
         self.am_file_path = "test_AM.dat"
         with open(self.am_file_path, 'w') as f:
